@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     parameters {
-        choice(name: 'PLAYBOOK', choices: ['02_k8s_install.yml', '02-1_reset_k8s_node.yml'], description: 'Select the K8s playbook to run')
+        choice(name: 'PLAYBOOK', choices: ['site.yml', '02_k8s_install.yml', '02-1_reset_k8s_node.yml'], description: 'Select the K8s playbook to run')
         string(name: 'LIMIT', defaultValue: 'all', description: 'Target hosts limit (e.g. PC2, PC3, PC6). Default: all')
         booleanParam(name: 'DRY_RUN', defaultValue: false, description: 'Run in check mode (dry-run)?')
     }

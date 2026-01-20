@@ -19,6 +19,15 @@ pipeline {
             }
         }
 
+        stage('Pre-flight Check') {
+            steps {
+                script {
+                   echo '🔍 Checking connectivity...'
+                   sh 'ansible all -i inventory.ini -m ping -l "${LIMIT}"'
+                }
+            }
+        }
+
         stage('Dry Run (Simulation)') {
             when {
                 expression { return params.DRY_RUN == true }

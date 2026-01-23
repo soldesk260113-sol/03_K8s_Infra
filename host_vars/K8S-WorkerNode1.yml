@@ -12,7 +12,7 @@ keepalived_router_id: WN1_API_VIP
 vrrp:
   name: VI_API
   interface: ens160
-  vrid: 201
+  vrid: 53
   priority: 150
   auth_pass: apivip01
   vip: 10.2.2.253/24

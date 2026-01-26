@@ -8,7 +8,7 @@ pipeline {
     
     environment {
         GITEA_HOST = '10.2.2.70:3001'
-        // 빌드를 안 하므로 소스 코드 주소나 이미지 이름 변수는 필요 없어졌습니다.
+        REPO_NAME = '03_K8s_Infra'
     }
     
     stages {
@@ -27,26 +27,25 @@ pipeline {
                         rm -rf /tmp/gitops_kma && mkdir -p /tmp/gitops_kma
                         cd /tmp/gitops_kma
                         
-                        # 2. Helm 저장소 가져오기
-                        git clone http://jenkins:JenkinsPass123@${GITEA_HOST}/admin/myapp-helm.git .
+                        # 2. 03_K8s_Infra 저장소 가져오기
+                        git clone http://jenkins:JenkinsPass123@${GITEA_HOST}/admin/${REPO_NAME}.git .
                         
                         git config user.email "jenkins@antigravity.local"
                         git config user.name "Jenkins CI"
                         
                         # 3. values.yaml 수정 (입력받은 태그로 변경)
-                        # ✅ 경로 확인: Applications/kma-api 폴더
-                        sed -i "s/tag: .*/tag: \\"${params.IMAGE_TAG}\\"/" kma-api/helm/values.yaml
+                        sed -i "s/tag: .*/tag: \\"${params.IMAGE_TAG}\\"/" apps/kma-api/helm/values.yaml
                         
                         # 4. 변경사항 확인
                         echo "🔍 변경된 태그 확인:"
-                        grep "tag:" kma-api/helm/values.yaml
+                        grep "tag:" apps/kma-api/helm/values.yaml
                         
-                        git add kma-api/helm/values.yaml
+                        git add apps/kma-api/helm/values.yaml
                         
                         # 변경된 내용이 있을 때만 Git에 올림
                         if ! git diff-index --quiet HEAD; then
                             git commit -m "Deploy kma-api image tag: ${params.IMAGE_TAG}"
-                            git push http://jenkins:JenkinsPass123@${GITEA_HOST}/admin/myapp-helm.git main
+                            git push http://jenkins:JenkinsPass123@${GITEA_HOST}/admin/${REPO_NAME}.git main
                             echo "✅ Helm Chart 업데이트 완료! ArgoCD가 곧 배포합니다."
                         else
                             echo "⚠️ 변경 사항 없음 (이미 해당 태그로 설정되어 있습니다)"

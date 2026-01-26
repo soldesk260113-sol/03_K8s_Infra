@@ -1,0 +1,7 @@
+---
+- name: Deploy Web Application
+  hosts: worker
+  become: true
+  roles:
+    - common
+    - web

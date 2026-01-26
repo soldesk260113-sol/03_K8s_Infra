@@ -1,0 +1,6 @@
+- name: Configure Ingress VIP with Keepalived and HAProxy
+  hosts: web
+  become: true
+  roles:
+    - haproxy
+    - keepalived

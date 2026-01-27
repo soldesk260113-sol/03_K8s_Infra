@@ -21,40 +21,38 @@ pipeline {
                 echo "☸️ energy-api 배포 시작: Harbor 태그(${params.IMAGE_TAG}) 적용"
                 
                 sh """
-                    ssh -i /var/jenkins_home/.ssh/id_rsa -o StrictHostKeyChecking=no root@10.2.2.70 '
-                        set -e
-                        
-                        # 1. 작업 공간 준비
-                        rm -rf /tmp/gitops_energy && mkdir -p /tmp/gitops_energy
-                        cd /tmp/gitops_energy
-                        
-                        # 2. 03_K8s_Infra 저장소 가져오기
-                        git clone http://jenkins:JenkinsPass123@${GITEA_HOST}/admin/${REPO_NAME}.git .
-                        
-                        git config user.email "jenkins@antigravity.local"
-                        git config user.name "Jenkins CI"
-                        
-                        # 3. values.yaml 수정 (입력받은 태그로 변경)
-                        sed -i "s/tag: .*/tag: \\"${params.IMAGE_TAG}\\"/" apps/energy-api/helm/values.yaml
-                        
-                        # 4. 변경사항 확인
-                        echo "🔍 변경된 태그 확인:"
-                        grep "tag:" apps/energy-api/helm/values.yaml
-                        
-                        git add apps/energy-api/helm/values.yaml
-                        
-                        # 변경된 내용이 있을 때만 Git에 올림
-                        if ! git diff-index --quiet HEAD; then
-                            git commit -m "Deploy energy-api image tag: ${params.IMAGE_TAG}"
-                            git push http://jenkins:JenkinsPass123@${GITEA_HOST}/admin/${REPO_NAME}.git main
-                            echo "✅ Helm Chart 업데이트 완료! ArgoCD가 곧 배포합니다."
-                        else
-                            echo "⚠️ 변경 사항 없음 (이미 해당 태그로 설정되어 있습니다)"
-                        fi
-                        
-                        # 5. 정리
-                        rm -rf /tmp/gitops_energy
-                    '
+                    set -e
+                    
+                    # 1. 작업 공간 준비
+                    rm -rf /tmp/gitops_energy && mkdir -p /tmp/gitops_energy
+                    cd /tmp/gitops_energy
+                    
+                    # 2. 03_K8s_Infra 저장소 가져오기
+                    git clone http://jenkins:JenkinsPass123@${GITEA_HOST}/admin/${REPO_NAME}.git .
+                    
+                    git config user.email "jenkins@antigravity.local"
+                    git config user.name "Jenkins CI"
+                    
+                    # 3. values.yaml 수정 (입력받은 태그로 변경)
+                    sed -i "s/tag: .*/tag: \\"${params.IMAGE_TAG}\\"/" apps/energy-api/helm/values.yaml
+                    
+                    # 4. 변경사항 확인
+                    echo "🔍 변경된 태그 확인:"
+                    grep "tag:" apps/energy-api/helm/values.yaml
+                    
+                    git add apps/energy-api/helm/values.yaml
+                    
+                    # 변경된 내용이 있을 때만 Git에 올림
+                    if ! git diff-index --quiet HEAD; then
+                        git commit -m "Deploy energy-api image tag: ${params.IMAGE_TAG}"
+                        git push http://jenkins:JenkinsPass123@${GITEA_HOST}/admin/${REPO_NAME}.git main
+                        echo "✅ Helm Chart 업데이트 완료! ArgoCD가 곧 배포합니다."
+                    else
+                        echo "⚠️ 변경 사항 없음 (이미 해당 태그로 설정되어 있습니다)"
+                    fi
+                    
+                    # 5. 정리
+                    rm -rf /tmp/gitops_energy
                 """
             }
         }

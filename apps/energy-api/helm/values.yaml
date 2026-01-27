@@ -2,7 +2,14 @@
 # 이 파일은 YAML 형식입니다.
 # 템플릿으로 전달될 변수들을 여기서 선언합니다.
 
-replicaCount: 2
+replicaCount: 3
+
+autoscaling:
+  enabled: true
+  minReplicas: 3
+  maxReplicas: 5
+  targetCPUUtilizationPercentage: 80
+  targetMemoryUtilizationPercentage: 80
 
 image:
   repository: 10.2.2.40:5000/library/energy-api
@@ -50,21 +57,20 @@ ingress:
     # kubernetes.io/ingress.class: nginx
     # kubernetes.io/tls-acme: "true" (TLS 인증서 자동 발급 관련)
   
-  # ✅ 충돌 방지를 위해 도메인 변경 (없으면 hosts 파일에 등록 필요)
-  # 10.2.2.101 로 접속하려면 로컬 PC의 hosts 파일에 "10.2.2.101 energy-api.local" 추가 추천
+  # ✅ IP(10.2.2.101)로 직접 접속 가능하도록 host를 비워둡니다.
   hosts:
-    - host: "10.2.2.101"
+    - host: ""
       paths:
-        - path: /
+        - path: /api/energy
           pathType: Prefix
 
-resources: {}
-  # limits: (리소스 최대 사용량 제한)
-  #   cpu: 100m
-  #   memory: 128Mi
-  # requests: (리소스 최소 보장량 요청)
-  #   cpu: 100m
-  #   memory: 128Mi
+resources:
+  limits:
+    cpu: 200m
+    memory: 256Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi
 
 nodeSelector: {}
 
@@ -72,9 +78,10 @@ tolerations: []
 
 affinity:
   nodeAffinity:
-    requiredDuringSchedulingIgnoredDuringExecution:
-      nodeSelectorTerms:
-      - matchExpressions:
+    preferredDuringSchedulingIgnoredDuringExecution:
+    - weight: 100
+      preference:
+        matchExpressions:
         - key: role
           operator: In
           values:
@@ -82,6 +89,32 @@ affinity:
 
 env:
   NODE_ENV: production
+  # Database Configuration
+  DB_HOST: "10.2.2.254"
+  DB_PORT: "5432"
+  DB_NAME: "appdb"
+  DB_SCHEMA: "api"
+  DB_USER: "svc_api"
+  DB_PASSWORD: "CHANGE_ME"
+  DB_SSLMODE: "disable"
+  
+  # Redis Configuration
+  REDIS_HOST: "host.containers.internal" 
+  REDIS_PORT: "6379"
+  REDIS_DB: "0"
+  REDIS_PASSWORD: ""
+  REDIS_PREFIX: "energy"
+
+  # API Keys & URLs
+  EMP_API_KEY: "8D4GI7rDQnO4ukBpn4QTbSeT5H9a8eahji7E2td5"
+  DATA_GO_KR_SERVICE_KEY: "93f2e3191276074224c438872e7cc3a95b6bcff3adbf538ceb8dba2938a233d5"
+  KPX_ODCLOUD_DATASET_URL: "https://api.odcloud.kr/api/15040818/v1/uddi:0873d163-4ed7-49f9-bf95-8eb5c7e35fad"
+  
+  # Cache TTL
+  KPX_CACHE_TTL: "600"
+
+  # Timezone
+  TZ: "Asia/Seoul"
 
 livenessProbe:
   tcpSocket:

@@ -10,6 +10,8 @@ export const ENV = {
   forgeApiUrl: (process.env.BUILT_IN_FORGE_API_URL ?? "").trim(),
   forgeApiKey: (process.env.BUILT_IN_FORGE_API_KEY ?? "").trim(),
   googleClientSecret: (process.env.GOOGLE_CLIENT_SECRET ?? "").trim(),
+  weatherApiUrl: (process.env.WEATHER_API_URL ?? "http://10.2.2.101/api/weather").trim(),
+  energyApiUrl: (process.env.ENERGY_API_URL ?? "http://10.2.2.101/api/energy").trim(),
 };
 
 console.log("[ENV] appId Length:", ENV.appId.length);

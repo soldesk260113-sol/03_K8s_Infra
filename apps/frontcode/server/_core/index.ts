@@ -35,6 +35,12 @@ async function startServer() {
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
   // OAuth callback under /api/oauth/callback
   registerOAuthRoutes(app);
+
+  // Health check endpoint for K8s probes
+  app.get("/health", (req, res) => {
+    res.status(200).json({ status: "ok" });
+  });
+
   // tRPC API
   app.use(
     "/api/trpc",

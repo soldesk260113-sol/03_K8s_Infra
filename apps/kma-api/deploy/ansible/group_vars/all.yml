@@ -15,7 +15,7 @@ kma_authkey: "MmNnsQppQqGjZ7EKaaKhgQ"
 db_host: "10.2.2.254"
 db_port: 5432
 db_name: "appdb"
-db_schema: "app"
+db_schema: "api"
 db_user: "svc_api"
 db_password: "CHANGE_ME"
 db_sslmode: "disable"

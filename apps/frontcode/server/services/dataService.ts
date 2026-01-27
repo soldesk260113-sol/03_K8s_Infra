@@ -50,37 +50,47 @@ export interface EnergyData {
  * 날씨 데이터 조회 (샘플 데이터)
  * 실제 환경: OpenWeatherMap, WeatherAPI 등의 외부 API 호출
  */
-export async function getWeatherData(location: string): Promise<WeatherData> {
-  const sampleWeatherData: Record<string, WeatherData> = {
-    "서울": {
-      location: "서울, 대한민국",
-      temperature: 15,
-      humidity: 65,
-      windSpeed: 12,
-      condition: "맑음",
-      description: "맑은 하늘",
-      feelsLike: 13,
-      uvIndex: 5,
-      visibility: 10000,
-      pressure: 1013,
-      precipitation: 0,
-    },
-    "부산": {
-      location: "부산, 대한민국",
-      temperature: 18,
-      humidity: 70,
-      windSpeed: 15,
-      condition: "흐림",
-      description: "구름이 많음",
-      feelsLike: 16,
-      uvIndex: 3,
-      visibility: 8000,
-      pressure: 1012,
-      precipitation: 2,
-    },
-  };
+import axios from "axios";
+import { ENV } from "../_core/env";
 
-  return sampleWeatherData[location] || sampleWeatherData["서울"];
+export async function getWeatherData(location: string): Promise<WeatherData> {
+  try {
+    const response = await axios.get(`${ENV.weatherApiUrl}/current`, {
+      params: { location }
+    });
+    return response.data;
+  } catch (error) {
+    console.warn("[DataService] Failed to fetch weather data, using fallback:", error);
+    const sampleWeatherData: Record<string, WeatherData> = {
+      "서울": {
+        location: "서울, 대한민국",
+        temperature: 15,
+        humidity: 65,
+        windSpeed: 12,
+        condition: "맑음",
+        description: "맑은 하늘",
+        feelsLike: 13,
+        uvIndex: 5,
+        visibility: 10000,
+        pressure: 1013,
+        precipitation: 0,
+      },
+      "부산": {
+        location: "부산, 대한민국",
+        temperature: 18,
+        humidity: 70,
+        windSpeed: 15,
+        condition: "흐림",
+        description: "구름이 많음",
+        feelsLike: 16,
+        uvIndex: 3,
+        visibility: 8000,
+        pressure: 1012,
+        precipitation: 2,
+      },
+    };
+    return sampleWeatherData[location] || sampleWeatherData["서울"];
+  }
 }
 
 /**
@@ -123,36 +133,43 @@ export async function getLogisticsData(trackingNumber: string): Promise<Logistic
  * 실제 환경: 한국전력, 가스공사, 수도공사 등의 API 호출
  */
 export async function getEnergyData(facility: string): Promise<EnergyData> {
-  const sampleEnergyData: Record<string, EnergyData> = {
-    "본사빌딩": {
-      facility: "본사 빌딩",
-      energyType: "전기",
-      consumption: 1250,
-      cost: 187500,
-      efficiency: 78,
-      carbonEmission: 625,
-      peakUsage: 1800,
-      averageUsage: 1100,
-      trend: "하강",
-      notes: "효율성이 개선되고 있습니다",
-      recordDate: new Date(),
-    },
-    "공장": {
-      facility: "공장",
-      energyType: "전기",
-      consumption: 3500,
-      cost: 525000,
-      efficiency: 65,
-      carbonEmission: 1750,
-      peakUsage: 5000,
-      averageUsage: 3200,
-      trend: "상승",
-      notes: "생산량 증가로 인한 사용량 증가",
-      recordDate: new Date(),
-    },
-  };
-
-  return sampleEnergyData[facility] || sampleEnergyData["본사빌딩"];
+  try {
+    const response = await axios.get(`${ENV.energyApiUrl}/usage`, {
+      params: { facility }
+    });
+    return response.data;
+  } catch (error) {
+    console.warn("[DataService] Failed to fetch energy data, using fallback:", error);
+    const sampleEnergyData: Record<string, EnergyData> = {
+      "본사빌딩": {
+        facility: "본사 빌딩",
+        energyType: "전기",
+        consumption: 1250,
+        cost: 187500,
+        efficiency: 78,
+        carbonEmission: 625,
+        peakUsage: 1800,
+        averageUsage: 1100,
+        trend: "하강",
+        notes: "효율성이 개선되고 있습니다",
+        recordDate: new Date(),
+      },
+      "공장": {
+        facility: "공장",
+        energyType: "전기",
+        consumption: 3500,
+        cost: 525000,
+        efficiency: 65,
+        carbonEmission: 1750,
+        peakUsage: 5000,
+        averageUsage: 3200,
+        trend: "상승",
+        notes: "생산량 증가로 인한 사용량 증가",
+        recordDate: new Date(),
+      },
+    };
+    return sampleEnergyData[facility] || sampleEnergyData["본사빌딩"];
+  }
 }
 
 /**

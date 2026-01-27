@@ -23,7 +23,7 @@ pipeline {
                     def tag = params.IMAGE_TAG
                     
                     // Login to Harbor (using admin credentials)
-                    sh "docker login ${harborHost} -u admin -p Harbor12345"
+                    sh "docker login ${harborHost} -u admin -p Admin123"
                     
                     // Build Image
                     dir('apps/energy-api') {

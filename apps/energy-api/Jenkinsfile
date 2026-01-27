@@ -13,7 +13,31 @@ pipeline {
     }
     
     stages {
-        // [1단계: 빌드] 삭제됨 
+        // [1단계: 빌드] 복구됨
+        stage('Build & Push') {
+            steps {
+                script {
+                    echo "🐳 Docker Image Build & Push..."
+                    def harborHost = "10.2.2.40:5000"
+                    def imageName = "library/energy-api"
+                    def tag = params.IMAGE_TAG
+                    
+                    // Login to Harbor (using admin credentials)
+                    sh "docker login ${harborHost} -u admin -p Harbor12345"
+                    
+                    // Build Image
+                    dir('apps/energy-api') {
+                        sh "docker build -t ${harborHost}/${imageName}:${tag} ."
+                    }
+                    
+                    // Push Image
+                    sh "docker push ${harborHost}/${imageName}:${tag}"
+                    
+                    // Cleanup local image
+                    sh "docker rmi ${harborHost}/${imageName}:${tag}"
+                }
+            }
+        } 
         
         // [2단계] Helm Chart 버전 업데이트 (이것만 실행)
         stage('Update Helm Chart') {

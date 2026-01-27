@@ -27,3 +27,19 @@ def call_kma(url: str, params: dict, timeout: int = 20) -> dict:
 
     return data
 
+
+def get_mid_temp(regId: str, tmFc: str) -> dict:
+    """
+    중기기온조회 API 호출
+    """
+    url = "http://apis.data.go.kr/1360000/MidFcstInfoService/getMidTa"
+    params = {
+        "regId": regId,
+        "tmFc": tmFc,
+        "dataType": "JSON",
+        "numOfRows": 10,
+        "pageNo": 1,
+    }
+    return call_kma(url, params)
+
+

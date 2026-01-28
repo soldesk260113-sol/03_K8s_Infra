@@ -1,12 +1,13 @@
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
-import { Cloud, Package, Zap, ArrowLeft, Download } from "lucide-react";
+import { Cloud, Zap, ArrowLeft, Download } from "lucide-react";
 import { useState } from "react";
 import { useLocation } from "wouter";
+import { trpc } from "@/lib/trpc";
 
 interface HistoryRecord {
   id: number;
-  type: "weather" | "logistics" | "energy";
+  type: "weather" | "energy";
   title: string;
   description: string;
   timestamp: Date;
@@ -16,63 +17,43 @@ interface HistoryRecord {
 export default function History() {
   const { user } = useAuth();
   const [, setLocation] = useLocation();
-  const [selectedType, setSelectedType] = useState<"all" | "weather" | "logistics" | "energy">(
+  const [selectedType, setSelectedType] = useState<"all" | "weather" | "energy">(
     "all"
   );
 
-  // 샘플 히스토리 데이터
-  const sampleHistory: HistoryRecord[] = [
-    {
-      id: 1,
-      type: "weather",
-      title: "서울 날씨 조회",
-      description: "온도 15°C, 습도 65%",
-      timestamp: new Date(Date.now() - 1 * 60 * 60 * 1000),
-      data: { location: "서울", temperature: 15, humidity: 65 },
-    },
-    {
-      id: 2,
-      type: "logistics",
-      title: "CJ123456789 배송 추적",
-      description: "배송중 - 부산 해운대구로 배송 중",
-      timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000),
-      data: { trackingNumber: "CJ123456789", status: "배송중" },
-    },
-    {
-      id: 3,
-      type: "energy",
-      title: "본사 빌딩 에너지 조회",
-      description: "사용량 1250 kWh, 효율성 78%",
-      timestamp: new Date(Date.now() - 3 * 60 * 60 * 1000),
-      data: { facility: "본사 빌딩", consumption: 1250, efficiency: 78 },
-    },
-    {
-      id: 4,
-      type: "weather",
-      title: "부산 날씨 조회",
-      description: "온도 18°C, 습도 70%",
-      timestamp: new Date(Date.now() - 4 * 60 * 60 * 1000),
-      data: { location: "부산", temperature: 18, humidity: 70 },
-    },
-    {
-      id: 5,
-      type: "logistics",
-      title: "LOTTE987654321 배송 추적",
-      description: "배송완료 - 서울 마포구",
-      timestamp: new Date(Date.now() - 5 * 60 * 60 * 1000),
-      data: { trackingNumber: "LOTTE987654321", status: "배송완료" },
-    },
-  ];
+  // 히스토리 데이터 쿼리
+  const weatherQuery = trpc.weather.latest.useQuery();
+  const energyQuery = trpc.energy.list.useQuery();
+
+  const weatherRecords = weatherQuery.data?.map(w => ({
+    id: w.id,
+    type: 'weather' as const,
+    title: w.location,
+    description: `${w.condition}, ${w.temperature}°C`,
+    timestamp: new Date(w.createdAt),
+    data: w as any
+  })) || [];
+
+  const energyRecords = energyQuery.data?.map(e => ({
+    id: e.id,
+    type: 'energy' as const,
+    title: e.facility,
+    description: `${e.consumption}kWh usage (${e.energyType})`,
+    timestamp: new Date(e.recordDate),
+    data: e as any
+  })) || [];
+
+  const history: HistoryRecord[] = [...weatherRecords, ...energyRecords].sort(
+    (a, b) => b.timestamp.getTime() - a.timestamp.getTime()
+  );
 
   const filteredHistory =
-    selectedType === "all" ? sampleHistory : sampleHistory.filter((h) => h.type === selectedType);
+    selectedType === "all" ? history : history.filter((h) => h.type === selectedType);
 
   const getTypeIcon = (type: string) => {
     switch (type) {
       case "weather":
         return <Cloud className="w-5 h-5" />;
-      case "logistics":
-        return <Package className="w-5 h-5" />;
       case "energy":
         return <Zap className="w-5 h-5" />;
       default:
@@ -84,8 +65,6 @@ export default function History() {
     switch (type) {
       case "weather":
         return "날씨";
-      case "logistics":
-        return "물류";
       case "energy":
         return "에너지";
       default:
@@ -97,8 +76,6 @@ export default function History() {
     switch (type) {
       case "weather":
         return "text-primary/60";
-      case "logistics":
-        return "text-accent/60";
       case "energy":
         return "text-yellow-400/60";
       default:
@@ -134,15 +111,14 @@ export default function History() {
       <div className="flex-1 p-6">
         {/* 필터 탭 */}
         <div className="flex gap-2 mb-6 flex-wrap">
-          {["all", "weather", "logistics", "energy"].map((type) => (
+          {["all", "weather", "energy"].map((type) => (
             <button
               key={type}
               onClick={() => setSelectedType(type as any)}
-              className={`px-4 py-2 rounded-none border transition-all ${
-                selectedType === type
-                  ? "bg-primary/20 border-primary/60 text-primary"
-                  : "bg-card/50 border-primary/20 text-muted-foreground hover:bg-primary/10"
-              }`}
+              className={`px-4 py-2 rounded-none border transition-all ${selectedType === type
+                ? "bg-primary/20 border-primary/60 text-primary"
+                : "bg-card/50 border-primary/20 text-muted-foreground hover:bg-primary/10"
+                }`}
             >
               {type === "all" ? "전체" : getTypeLabel(type)}
             </button>

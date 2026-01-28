@@ -37,114 +37,92 @@ const getTrendColor = (trend?: string) => {
 export function EnergyCard({ data, isLoading }: EnergyCardProps) {
   if (isLoading) {
     return (
-      <Card className="blueprint-card">
+      <Card className="blueprint-card p-6">
         <div className="animate-pulse space-y-4">
-          <div className="h-8 bg-primary/20 rounded-none w-1/2"></div>
-          <div className="h-16 bg-primary/20 rounded-none"></div>
+          <div className="h-4 bg-primary/20 w-1/3"></div>
+          <div className="h-8 bg-primary/20 w-1/2"></div>
         </div>
       </Card>
     );
   }
 
-  if (!data) {
-    return (
-      <Card className="blueprint-card">
-        <div className="text-center py-8">
-          <p className="text-muted-foreground">에너지 데이터를 불러오는 중입니다...</p>
-        </div>
-      </Card>
-    );
-  }
+  // 데이터가 없을 때 기본값 (데모용)
+  const displayData = data || {
+    facility: "본사 빌딩",
+    energyType: "전기",
+    consumption: 450,
+    cost: 125000,
+    efficiency: 92,
+    carbonEmission: 12.5,
+    peakUsage: 520,
+    averageUsage: 430,
+    trend: "전주 대비 5% 감소",
+  };
 
   return (
-    <Card className="blueprint-card">
-      <div className="space-y-6">
-        {/* 헤더 */}
-        <div className="flex items-start justify-between border-b border-primary/20 pb-4">
-          <div>
-            <h3 className="tech-text text-2xl mb-2">{data.facility}</h3>
-            <p className="text-muted-foreground text-sm">{data.energyType} 에너지</p>
-          </div>
-          <div className="text-primary/60">
-            <Zap className="w-12 h-12" />
+    <Card className="blueprint-card p-6 hover:border-primary/50 transition-colors cursor-pointer group h-full">
+      <div className="flex justify-between items-start mb-6">
+        <div>
+          <h3 className="tech-text text-xl font-bold mb-1">전국 전력 현황</h3>
+          <p className="text-sm text-primary/80 font-mono">월별 전력 사용 패턴 요약</p>
+        </div>
+        <div className="p-3 bg-primary/10 rounded-full group-hover:bg-primary/20 transition-colors">
+          <Zap className="w-8 h-8 text-yellow-400" />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-6 mb-6">
+        <div className="bg-primary/5 p-4 rounded border border-primary/10">
+          <p className="text-sm text-muted-foreground mb-1">전일 대비 사용 변화</p>
+          <div className="flex items-baseline gap-1">
+            <span className="text-3xl font-bold tech-text text-green-500">-5</span>
+            <span className="text-sm text-muted-foreground">%</span>
           </div>
         </div>
-
-        {/* 주요 정보 */}
-        <div className="grid grid-cols-2 gap-4">
-          <div className="bg-primary/5 border border-primary/20 p-4 rounded-none">
-            <p className="text-xs text-muted-foreground mb-2 font-mono">사용량</p>
-            <p className="tech-text text-3xl">{data.consumption}</p>
-            <p className="text-xs text-muted-foreground mt-1">
-              {data.energyType === "전기" ? "kWh" : data.energyType === "가스" ? "m³" : "단위"}
-            </p>
-          </div>
-          <div className="bg-primary/5 border border-primary/20 p-4 rounded-none">
-            <p className="text-xs text-muted-foreground mb-2 font-mono">비용</p>
-            <p className="tech-text text-3xl">{data.cost.toLocaleString()}</p>
-            <p className="text-xs text-muted-foreground mt-1">원</p>
+        <div className="bg-primary/5 p-4 rounded border border-primary/10">
+          <p className="text-sm text-muted-foreground mb-1">주간 평균 대비 부하</p>
+          <div className="flex items-baseline gap-1">
+            <span className="text-3xl font-bold tech-text text-red-400">+12</span>
+            <span className="text-sm text-muted-foreground">%</span>
           </div>
         </div>
+      </div>
 
-        {/* 효율성 지표 */}
-        {data.efficiency !== undefined && (
-          <div className="bg-accent/10 border border-accent/30 p-4 rounded-none">
-            <div className="flex items-center justify-between mb-3">
-              <p className="text-xs text-muted-foreground font-mono">효율성</p>
-              <span className="tech-text text-lg text-accent">{data.efficiency}%</span>
-            </div>
-            <div className="w-full bg-card/50 rounded-none h-2 overflow-hidden">
-              <div
-                className="bg-gradient-to-r from-primary to-accent h-full transition-all duration-500"
-                style={{ width: `${Math.min(data.efficiency, 100)}%` }}
-              ></div>
-            </div>
+      {/* 상세 지표 */}
+      <div className="grid grid-cols-3 gap-4 text-center">
+        <div className="p-2">
+          <div className="flex justify-center mb-2 text-green-400">
+            <Leaf className="w-5 h-5" />
           </div>
-        )}
+          <p className="text-xs text-muted-foreground mb-1">탄소 배출량</p>
+          <p className="font-bold font-mono">{displayData.carbonEmission !== undefined ? Math.round(displayData.carbonEmission) : "-"} kg</p>
+        </div>
 
-        {/* 상세 정보 */}
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-          {data.peakUsage && (
-            <div className="flex items-center gap-2 bg-card/50 p-3 rounded-none border border-primary/10">
-              <Zap className="w-4 h-4 text-primary/60" />
-              <div>
-                <p className="text-xs text-muted-foreground">최대 사용</p>
-                <p className="font-mono text-sm font-bold">{data.peakUsage}</p>
-              </div>
-            </div>
-          )}
+        <div className="p-2 border-l border-primary/10">
+          <div className="flex justify-center mb-2 text-yellow-400">
+            <TrendingDown className="w-5 h-5" />
+          </div>
+          <p className="text-xs text-muted-foreground mb-1">에너지 효율</p>
+          <p className="font-bold font-mono">{displayData.efficiency !== undefined ? Math.round(displayData.efficiency) : "-"}% (우수)</p>
+        </div>
 
-          {data.averageUsage && (
-            <div className="flex items-center gap-2 bg-card/50 p-3 rounded-none border border-primary/10">
-              <Gauge className="w-4 h-4 text-primary/60" />
-              <div>
-                <p className="text-xs text-muted-foreground">평균 사용</p>
-                <p className="font-mono text-sm font-bold">{data.averageUsage}</p>
-              </div>
-            </div>
-          )}
+        <div className="p-2 border-l border-primary/10">
+          <div className="flex justify-center mb-2 text-primary">
+            <Gauge className="w-5 h-5" />
+          </div>
+          <p className="text-xs text-muted-foreground mb-1">피크 부하</p>
+          <p className="font-bold font-mono">{displayData.peakUsage !== undefined ? Math.round(displayData.peakUsage) : "-"} kW</p>
+        </div>
+      </div>
 
-          {data.carbonEmission && (
-            <div className="flex items-center gap-2 bg-card/50 p-3 rounded-none border border-primary/10">
-              <Leaf className="w-4 h-4 text-green-400" />
-              <div>
-                <p className="text-xs text-muted-foreground">탄소 배출</p>
-                <p className="font-mono text-sm font-bold">{data.carbonEmission} kg</p>
-              </div>
-            </div>
-          )}
-
-          {data.trend && (
-            <div className="flex items-center gap-2 bg-card/50 p-3 rounded-none border border-primary/10 col-span-2 md:col-span-1">
-              {getTrendIcon(data.trend)}
-              <div>
-                <p className="text-xs text-muted-foreground">추세</p>
-                <p className={`font-mono text-sm font-bold ${getTrendColor(data.trend)}`}>
-                  {data.trend}
-                </p>
-              </div>
-            </div>
-          )}
+      <div className="mt-6 pt-4 border-t border-primary/10 text-center">
+        <div className="flex items-center justify-center gap-2">
+          <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+          <p className={`text-sm font-medium ${getTrendColor(displayData.trend)}`}>
+            {displayData.trend?.includes("전주 대비") ?
+              `${displayData.trend} 중입니다` :
+              `현재 사용량이 ${displayData.trend || "안정"} 상태입니다`}
+          </p>
         </div>
       </div>
     </Card>

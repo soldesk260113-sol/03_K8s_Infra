@@ -61,6 +61,7 @@ export function useAuth(options?: UseAuthOptions) {
     setLoggedOut(true);
     utils.auth.me.setData(undefined, null);
     localStorage.removeItem("isLoggedIn");
+    localStorage.removeItem("app_session_token"); // ✅ 세션 토큰 제거
     localStorage.removeItem("manus-runtime-user-info");
 
     try {
@@ -85,9 +86,10 @@ export function useAuth(options?: UseAuthOptions) {
     // 1. 서버 인증 우선
     let user = meQuery.data ?? null;
 
-    // 2. 서버 인증 없고, 수동 로그인(admin/admin123) 되어있으면 DEV_USER로 우회
+    // 2. 서버 인증 없고, 수동 로그인(admin/admin123) 되어있으면 로컬 스토리지 정리
     if (!user && !meQuery.isLoading && localStorage.getItem("isLoggedIn") === "true") {
-      user = DEV_USER;
+      console.warn("[useAuth] Session expired or invalid. Clearing local state.");
+      localStorage.removeItem("isLoggedIn");
     }
 
     console.log("[useAuth] Final user state:", user);

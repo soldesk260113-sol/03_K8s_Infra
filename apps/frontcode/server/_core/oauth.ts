@@ -10,7 +10,8 @@ function getQueryParam(req: Request, key: string): string | undefined {
 }
 
 export function registerOAuthRoutes(app: Express) {
-  app.get("/api/oauth/callback", async (req: Request, res: Response) => {
+  app.get("/api/auth/callback/google", async (req: Request, res: Response) => {
+    console.log("[OAuth] CALLBACK RECEIVED - Query Params:", req.query);
     const code = getQueryParam(req, "code");
     const state = getQueryParam(req, "state");
 
@@ -47,10 +48,12 @@ export function registerOAuthRoutes(app: Express) {
       });
 
       const cookieOptions = getSessionCookieOptions(req);
+      console.log("[OAuth] Setting Session Cookie with Options:", JSON.stringify(cookieOptions, null, 2));
+
       res.cookie(COOKIE_NAME, sessionToken, { ...cookieOptions, maxAge: ONE_YEAR_MS });
 
-      console.log("[OAuth] Session created, redirecting to home");
-      res.redirect(302, "/");
+      console.log("[OAuth] Session created, redirecting with token");
+      res.redirect(302, `/?token=${encodeURIComponent(sessionToken)}`);
     } catch (error: any) {
       console.error("[OAuth] Callback failed details:", {
         message: error.message,

@@ -3,15 +3,16 @@ import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
 import {
-  getLatestWeatherRecords,
-  getLogisticsRecords,
-  getEnergyRecords,
-  saveWeatherRecord,
-  saveLogisticsRecord,
-  saveEnergyRecord,
-  logApiCall,
+  // getLatestWeatherRecords,
+  // getEnergyRecords,
+  // saveWeatherRecord,
+  // saveEnergyRecord,
+  // logApiCall,
 } from "./db";
-import { getWeatherData, getLogisticsData, getEnergyData } from "./services/dataService";
+import * as db from "./db";
+import { getWeatherData, getEnergyData } from "./services/dataService";
+import { fetchGlobalEnergyTrends, fetchCompanyNotices } from "./services/apiClient";
+import { sdk } from "./_core/sdk";
 import { z } from "zod";
 
 export const appRouter = router({
@@ -25,12 +26,44 @@ export const appRouter = router({
         success: true,
       } as const;
     }),
+    manualLogin: publicProcedure
+      .input(z.object({ id: z.string(), pw: z.string() }))
+      .mutation(async ({ ctx, input }) => {
+        if (input.id === "admin" && input.pw === "admin123") {
+          // 1. DB에서 어드민 유저 확인 또는 생성
+          let user = await db.getUserByOpenId("admin-id");
+          if (!user) {
+            await db.upsertUser({
+              openId: "admin-id",
+              name: "Administrator",
+              email: "admin@local",
+              loginMethod: "manual",
+              role: "admin",
+            });
+            user = await db.getUserByOpenId("admin-id");
+          }
+
+          if (!user) throw new Error("Failed to create admin user");
+
+          // 2. 세션 토킹 생성
+          const sessionToken = await sdk.createSessionToken(user.openId, {
+            name: user.name || "Admin",
+          });
+
+          // 3. 쿠키 설정
+          const cookieOptions = getSessionCookieOptions(ctx.req);
+          ctx.res.cookie(COOKIE_NAME, sessionToken, cookieOptions);
+
+          return { success: true, user, sessionToken }; // ✅ 토큰도 함께 반환하여 프론트엔드에서 저장할 수 있게 함
+        }
+        throw new Error("Invalid credentials");
+      }),
   }),
 
   // 날씨 API 라우터
   weather: router({
     latest: protectedProcedure.query(async ({ ctx }) => {
-      return await getLatestWeatherRecords(ctx.user.id, 10);
+      return await db.getLatestWeatherRecords(ctx.user.id, 10);
     }),
     fetch: protectedProcedure
       .input(z.object({ location: z.string() }))
@@ -38,7 +71,7 @@ export const appRouter = router({
         const startTime = Date.now();
         try {
           const data = await getWeatherData(input.location);
-          await logApiCall({
+          await db.logApiCall({
             userId: ctx.user.id,
             apiName: "weather",
             endpoint: "/api/weather/fetch",
@@ -49,7 +82,7 @@ export const appRouter = router({
           });
           return data;
         } catch (error) {
-          await logApiCall({
+          await db.logApiCall({
             userId: ctx.user.id,
             apiName: "weather",
             endpoint: "/api/weather/fetch",
@@ -81,11 +114,11 @@ export const appRouter = router({
       .mutation(async ({ ctx, input }) => {
         const startTime = Date.now();
         try {
-          await saveWeatherRecord({
+          await db.saveWeatherRecord({
             userId: ctx.user.id,
             ...input,
           });
-          await logApiCall({
+          await db.logApiCall({
             userId: ctx.user.id,
             apiName: "weather",
             endpoint: "/api/weather/save",
@@ -96,94 +129,10 @@ export const appRouter = router({
           });
           return { success: true };
         } catch (error) {
-          await logApiCall({
+          await db.logApiCall({
             userId: ctx.user.id,
             apiName: "weather",
             endpoint: "/api/weather/save",
-            method: "POST",
-            statusCode: 500,
-            responseTime: Date.now() - startTime,
-            success: 0,
-            errorMessage: error instanceof Error ? error.message : "Unknown error",
-          });
-          throw error;
-        }
-      }),
-  }),
-
-  // 물류 API 라우터
-  logistics: router({
-    list: protectedProcedure.query(async ({ ctx }) => {
-      return await getLogisticsRecords(ctx.user.id, 10);
-    }),
-    fetch: protectedProcedure
-      .input(z.object({ trackingNumber: z.string() }))
-      .query(async ({ ctx, input }) => {
-        const startTime = Date.now();
-        try {
-          const data = await getLogisticsData(input.trackingNumber);
-          await logApiCall({
-            userId: ctx.user.id,
-            apiName: "logistics",
-            endpoint: "/api/logistics/fetch",
-            method: "GET",
-            statusCode: 200,
-            responseTime: Date.now() - startTime,
-            success: 1,
-          });
-          return data;
-        } catch (error) {
-          await logApiCall({
-            userId: ctx.user.id,
-            apiName: "logistics",
-            endpoint: "/api/logistics/fetch",
-            method: "GET",
-            statusCode: 500,
-            responseTime: Date.now() - startTime,
-            success: 0,
-            errorMessage: error instanceof Error ? error.message : "Unknown error",
-          });
-          throw error;
-        }
-      }),
-    save: protectedProcedure
-      .input(
-        z.object({
-          trackingNumber: z.string(),
-          status: z.string(),
-          origin: z.string(),
-          destination: z.string(),
-          carrier: z.string().optional(),
-          estimatedDelivery: z.date().optional(),
-          actualDelivery: z.date().optional(),
-          weight: z.number().optional(),
-          distance: z.number().optional(),
-          cost: z.number().optional(),
-          notes: z.string().optional(),
-        })
-      )
-      .mutation(async ({ ctx, input }) => {
-        const startTime = Date.now();
-        try {
-          await saveLogisticsRecord({
-            userId: ctx.user.id,
-            ...input,
-          });
-          await logApiCall({
-            userId: ctx.user.id,
-            apiName: "logistics",
-            endpoint: "/api/logistics/save",
-            method: "POST",
-            statusCode: 200,
-            responseTime: Date.now() - startTime,
-            success: 1,
-          });
-          return { success: true };
-        } catch (error) {
-          await logApiCall({
-            userId: ctx.user.id,
-            apiName: "logistics",
-            endpoint: "/api/logistics/save",
             method: "POST",
             statusCode: 500,
             responseTime: Date.now() - startTime,
@@ -198,7 +147,7 @@ export const appRouter = router({
   // 에너지 API 라우터
   energy: router({
     list: protectedProcedure.query(async ({ ctx }) => {
-      return await getEnergyRecords(ctx.user.id, 10);
+      return await db.getEnergyRecords(ctx.user.id, 10);
     }),
     fetch: protectedProcedure
       .input(z.object({ facility: z.string() }))
@@ -206,7 +155,7 @@ export const appRouter = router({
         const startTime = Date.now();
         try {
           const data = await getEnergyData(input.facility);
-          await logApiCall({
+          await db.logApiCall({
             userId: ctx.user.id,
             apiName: "energy",
             endpoint: "/api/energy/fetch",
@@ -217,7 +166,7 @@ export const appRouter = router({
           });
           return data;
         } catch (error) {
-          await logApiCall({
+          await db.logApiCall({
             userId: ctx.user.id,
             apiName: "energy",
             endpoint: "/api/energy/fetch",
@@ -249,11 +198,11 @@ export const appRouter = router({
       .mutation(async ({ ctx, input }) => {
         const startTime = Date.now();
         try {
-          await saveEnergyRecord({
+          await db.saveEnergyRecord({
             userId: ctx.user.id,
             ...input,
           });
-          await logApiCall({
+          await db.logApiCall({
             userId: ctx.user.id,
             apiName: "energy",
             endpoint: "/api/energy/save",
@@ -264,7 +213,7 @@ export const appRouter = router({
           });
           return { success: true };
         } catch (error) {
-          await logApiCall({
+          await db.logApiCall({
             userId: ctx.user.id,
             apiName: "energy",
             endpoint: "/api/energy/save",
@@ -276,6 +225,33 @@ export const appRouter = router({
           });
           throw error;
         }
+      }),
+  }),
+
+  // [New] 글로벌/공통 서비스 라우터 (아이디어 구현용)
+  global: router({
+    trends: protectedProcedure.query(async () => {
+      const data = await fetchGlobalEnergyTrends();
+      if (!data) throw new Error("Failed to fetch global trends");
+      return data;
+    }),
+    notices: protectedProcedure.query(async () => {
+      const data = await fetchCompanyNotices();
+      if (!data) return [];
+      return data;
+    })
+  }),
+
+  // [New] 통합 대시보드 라우터
+  dashboard: router({
+    getHomeData: protectedProcedure
+      .input(z.object({ location: z.string().default("서울") }))
+      .query(async ({ input }) => {
+        const [weather, energy] = await Promise.all([
+          getWeatherData(input.location),
+          getEnergyData(input.location),
+        ]);
+        return { weather, energy };
       }),
   }),
 });

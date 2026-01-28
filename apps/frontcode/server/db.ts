@@ -8,8 +8,6 @@ import {
   users,
   weatherRecords,
   InsertWeatherRecord,
-  logisticsRecords,
-  InsertLogisticsRecord,
   energyRecords,
   InsertEnergyRecord,
   apiCalls,
@@ -25,7 +23,6 @@ const DB_FILE = path.resolve(__dirname, "../../local_db.json");
 interface LocalStore {
   users: User[];
   weatherRecords: any[];
-  logisticsRecords: any[];
   energyRecords: any[];
   apiCalls: any[];
 }
@@ -38,7 +35,7 @@ function readLocalDb(): LocalStore {
   } catch (e) {
     console.error("[LocalDB] Read failed:", e);
   }
-  return { users: [], weatherRecords: [], logisticsRecords: [], energyRecords: [], apiCalls: [] };
+  return { users: [], weatherRecords: [], energyRecords: [], apiCalls: [] };
 }
 
 function writeLocalDb(data: LocalStore) {
@@ -58,7 +55,7 @@ export async function getDb() {
     try {
       _db = drizzle(process.env.DATABASE_URL);
       // Quick connectivity check
-      await _db.select({ one: 1 }).from(users).limit(1).catch(() => {
+      await _db.select({ id: users.id }).from(users).limit(1).catch(() => {
         throw new Error("Table or connection missing");
       });
       console.log("[Database] Connected successfully.");
@@ -149,25 +146,7 @@ export async function getLatestWeatherRecords(userId: number, limit: number = 10
 }
 
 // Simplified remaining exports for fallback
-export async function saveLogisticsRecord(data: InsertLogisticsRecord) {
-  const db = await getDb();
-  if (!db) {
-    const store = readLocalDb();
-    store.logisticsRecords.push({ ...data, id: store.logisticsRecords.length + 1, createdAt: new Date() });
-    writeLocalDb(store);
-    return;
-  }
-  await db.insert(logisticsRecords).values(data);
-}
 
-export async function getLogisticsRecords(userId: number, limit: number = 10) {
-  const db = await getDb();
-  if (!db) {
-    const store = readLocalDb();
-    return store.logisticsRecords.filter(r => r.userId === userId).slice(0, limit);
-  }
-  return db.select().from(logisticsRecords).where(eq(logisticsRecords.userId, userId)).limit(limit);
-}
 
 export async function saveEnergyRecord(data: InsertEnergyRecord) {
   const db = await getDb();

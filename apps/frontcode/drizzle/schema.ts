@@ -50,30 +50,7 @@ export const weatherRecords = mysqlTable("weather_records", {
 export type WeatherRecord = typeof weatherRecords.$inferSelect;
 export type InsertWeatherRecord = typeof weatherRecords.$inferInsert;
 
-/**
- * 물류/로지스틱스 데이터 기록 테이블
- * 배송 상태, 물류 정보 등을 저장
- */
-export const logisticsRecords = mysqlTable("logistics_records", {
-  id: int("id").autoincrement().primaryKey(),
-  userId: int("userId").notNull().references(() => users.id, { onDelete: "cascade" }),
-  trackingNumber: varchar("tracking_number", { length: 100 }).notNull().unique(),
-  status: varchar("status", { length: 50 }).notNull(), // 배송 상태 (배송중, 배송완료, 배송대기 등)
-  origin: varchar("origin", { length: 255 }).notNull(), // 출발지
-  destination: varchar("destination", { length: 255 }).notNull(), // 목적지
-  carrier: varchar("carrier", { length: 100 }), // 배송사
-  estimatedDelivery: timestamp("estimated_delivery"), // 예상 배송일
-  actualDelivery: timestamp("actual_delivery"), // 실제 배송일
-  weight: int("weight"), // 무게 (g)
-  distance: int("distance"), // 거리 (km)
-  cost: int("cost"), // 배송비 (원)
-  notes: text("notes"), // 특이사항
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
-});
 
-export type LogisticsRecord = typeof logisticsRecords.$inferSelect;
-export type InsertLogisticsRecord = typeof logisticsRecords.$inferInsert;
 
 /**
  * 에너지 효율 데이터 기록 테이블
@@ -107,7 +84,7 @@ export type InsertEnergyRecord = typeof energyRecords.$inferInsert;
 export const apiCalls = mysqlTable("api_calls", {
   id: int("id").autoincrement().primaryKey(),
   userId: int("userId").notNull().references(() => users.id, { onDelete: "cascade" }),
-  apiName: varchar("api_name", { length: 100 }).notNull(), // API 이름 (weather, logistics, energy)
+  apiName: varchar("api_name", { length: 100 }).notNull(), // API 이름 (weather, energy)
   endpoint: varchar("endpoint", { length: 255 }).notNull(), // API 엔드포인트
   method: varchar("method", { length: 10 }).notNull(), // HTTP 메서드 (GET, POST 등)
   statusCode: int("status_code"), // HTTP 상태 코드

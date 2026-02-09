@@ -20,7 +20,7 @@ image:
 imagePullSecrets:
   - name: harbor-secret
 nameOverride: ""
-fullnameOverride: ""
+fullnameOverride: "kma-api"
 
 serviceAccount:
   # 서비스 계정을 생성할지 여부를 지정합니다.

@@ -1,56 +1,24 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: integrated-dashboard
-  labels:
-    app: integrated-dashboard
+  name: web-v2-dashboard
   namespace: team2
 spec:
   replicas: 2
   selector:
     matchLabels:
-      app: integrated-dashboard
+      app: web-v2-dashboard
   template:
     metadata:
       labels:
-        app: integrated-dashboard
+        app: web-v2-dashboard
     spec:
+      imagePullSecrets:
+      - name: harbor-secret
       containers:
-      - name: dashboard
-        image: 10.2.2.40:5000/library/integrated-dashboard:latest
+      - name: web
+        image: 10.2.2.40:5000/library/web-v2-dashboard:latest
         imagePullPolicy: Always
         ports:
-        - containerPort: 3000
-        env:
-        - name: NODE_ENV
-          value: "production"
-        - name: DATABASE_URL
-          value: "mysql://root:admin123@10.2.3.254:3306/integrated_dashboard" # From diagram: DB Access VIP
-        - name: JWT_SECRET
-          value: "integrated-dashboard-secret-8877"
-        - name: VITE_APP_ID
-          value: "116278425083-h8gi5c8u24gcoudtfbks9u8bkfknc1n7.apps.googleusercontent.com"
-        - name: GOOGLE_CLIENT_ID
-          value: "116278425083-h8gi5c8u24gcoudtfbks9u8bkfknc1n7.apps.googleusercontent.com"
-        - name: GOOGLE_CLIENT_SECRET
-          value: "PLACEHOLDER_SET_ON_SERVER" # Auto-injected by build-and-deploy.sh
-        resources:
-          limits:
-            cpu: "1"
-            memory: "1Gi"
-          requests:
-            cpu: "500m"
-            memory: "512Mi"
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: integrated-dashboard-service
-  namespace: team2
-spec:
-  selector:
-    app: integrated-dashboard
-  ports:
-  - port: 80
-    targetPort: 3000
-  type: ClusterIP
+        - containerPort: 80
+

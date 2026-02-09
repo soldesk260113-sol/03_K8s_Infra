@@ -1,20 +1,27 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: integrated-dashboard-ingress
+  name: cafekec-unified-ingress
   namespace: team2
   annotations:
-    kubernetes.io/ingress.class: nginx
-    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
 spec:
   ingressClassName: nginx
   rules:
-  - http:
+  - host: cafekec.shop
+    http:
       paths:
-      - path: /
+      - path: /v2(/|$)(.*)
         pathType: Prefix
         backend:
           service:
-            name: integrated-dashboard-service
+            name: web-v2-service
             port:
               number: 80
+      - path: /api/energy(/|$)(.*)
+        pathType: Prefix
+        backend:
+          service:
+            name: energy-api
+            port:
+              number: 8000

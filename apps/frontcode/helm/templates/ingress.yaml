@@ -18,20 +18,13 @@ spec:
             name: web-v2-service
             port:
               number: 80
-      - path: /()(.*)
+      - path: /api/weather(/|$)(.*)
         pathType: Prefix
         backend:
           service:
-            name: web-v2-service
+            name: kma-api
             port:
-              number: 80
-      - path: /main(/|$)(.*)
-        pathType: Prefix
-        backend:
-          service:
-            name: web-v2-service
-            port:
-              number: 80
+              number: 8080
       - path: /api/energy(/|$)(.*)
         pathType: Prefix
         backend:

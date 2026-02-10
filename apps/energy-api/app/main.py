@@ -11,10 +11,10 @@ app = FastAPI(title="Energy API", version="1.0.0")
 app.include_router(health_router)
 
 # Root path handler for Ingress rewrite
-from starlette.responses import RedirectResponse
+from app.routers.health import global_status
 @app.get("/")
 async def root():
-    return RedirectResponse(url="/healthz/global-status")
+    return global_status()
 
 # /gas/...
 app.include_router(gas_router)

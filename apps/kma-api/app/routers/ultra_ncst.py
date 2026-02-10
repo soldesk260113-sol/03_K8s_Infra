@@ -42,7 +42,7 @@ def simplify_ultra_ncst(data: dict):
         "wind_dir_deg": to_float(value_map.get("VEC")),
     }
 
-@router.get("")
+@router.get("/")
 def get_weather(nx: int = 60, ny: int = 127, request: Request = None):
     r = redis_client()
     prefix = os.getenv("REDIS_PREFIX", "weather")

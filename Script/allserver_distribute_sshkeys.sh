@@ -51,7 +51,6 @@ SERVERS=(
     "10.2.2.21" # DB Proxy 2
     "10.2.3.2"  # DB Active (DMZ-2, 라우팅 확인 필요)
     "10.2.3.3"  # DB Standby
-    "10.2.3.4"  # DB Backup
     "10.2.3.20" # etcd_1
     "10.2.3.21" # etcd_2
     "10.2.3.22" # etcd_3

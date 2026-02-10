@@ -54,7 +54,6 @@ SERVERS=(
     "10.2.2.30" # Storage
     "10.2.3.2"  # DB Active (주의: 라우팅 없으면 불량 뜰 수 있음)
     "10.2.3.3"  # DB Standby
-    "10.2.3.4"  # DB Backup
     "10.2.3.20" # DB etcd_1
     "10.2.3.21" # DB etcd_2
     "10.2.3.22" # DB etcd_3

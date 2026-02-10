@@ -14,8 +14,8 @@ app = FastAPI(
 def health():
     return {"status": "ok"}
 
-app.include_router(ultra_router, prefix="/weather", tags=["ultra"])
-app.include_router(short_router, prefix="/weather", tags=["short"])
-app.include_router(mid_land_router, prefix="/weather", tags=["mid"])
-app.include_router(mid_temp_router, prefix="/weather", tags=["mid"])
+app.include_router(ultra_router, prefix="", tags=["ultra"])
+app.include_router(short_router, prefix="", tags=["short"])
+app.include_router(mid_land_router, prefix="", tags=["mid"])
+app.include_router(mid_temp_router, prefix="", tags=["mid"])
 

@@ -13,10 +13,15 @@ def global_status():
     import os
 
     # 1. DB Check
+    db_status = "connected"
+    db_error = None
     try:
         execute("SELECT 1")
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Database Connection Error: {str(e)}")
+        db_status = "disconnected"
+        db_error = str(e)
+        # Don't raise 500, just report status
+
 
     # 2. Storage Check (Write to /tmp)
     try:
@@ -27,5 +32,10 @@ def global_status():
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Storage Mount Error: {str(e)}")
 
-    return {"status": "ok", "db": "connected", "storage": "mounted"}
+    return {
+        "status": "ok" if db_status == "connected" else "degraded",
+        "db": db_status,
+        "db_error": db_error,
+        "storage": "mounted"
+    }
 

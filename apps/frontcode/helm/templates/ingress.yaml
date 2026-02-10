@@ -35,4 +35,4 @@ spec:
           service:
             name: energy-api
             port:
-              number: 8000
+              number: 80

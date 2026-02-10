@@ -18,6 +18,13 @@ spec:
             name: web-v2-service
             port:
               number: 80
+      - path: /()(.*)
+        pathType: Prefix
+        backend:
+          service:
+            name: web-v2-service
+            port:
+              number: 80
       - path: /api/energy(/|$)(.*)
         pathType: Prefix
         backend:

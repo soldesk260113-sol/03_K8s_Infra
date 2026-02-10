@@ -4,26 +4,52 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Q&A 대시보드</title>
+    <title>AI + API 통합 사이트</title>
     <style>
         /* =========================================
-           [스타일] 원본 CSS 100% 복구 + 알약 버튼 적용
+           [CSS] v4.1 Refined (한글화 & UI 개선)
            ========================================= */
+        :root {
+            --bg-color: #f8fafc;
+            --card-bg: #ffffff;
+            --text-main: #1e293b;
+            --text-sub: #64748b;
+            --border: #e2e8f0;
+            --accent: #8b5cf6;
+            --accent-hover: #7c3aed;
+            --shadow: rgba(0, 0, 0, 0.05);
+            --chat-user-bg: #8b5cf6;
+            --chat-user-text: white;
+        }
+
+        body.dark-mode {
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --text-main: #f1f5f9;
+            --text-sub: #94a3b8;
+            --border: #334155;
+            --accent: #a78bfa;
+            --accent-hover: #8b5cf6;
+            --shadow: rgba(0, 0, 0, 0.3);
+            --chat-user-bg: #6366f1;
+        }
+
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
+            transition: background 0.3s, color 0.3s, border-color 0.3s;
         }
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans KR', sans-serif;
-            background: linear-gradient(135deg, #f5f7fa 0%, #e4e9f2 100%);
+            background: var(--bg-color);
+            color: var(--text-main);
             min-height: 100vh;
             display: flex;
             flex-direction: column;
             padding: 20px;
             padding-bottom: 190px;
-            /* 하단 바 공간 */
         }
 
         .container {
@@ -33,54 +59,32 @@
             display: flex;
             flex-direction: column;
             gap: 40px;
-            padding-top: 60px;
+            padding-top: 80px;
         }
 
-        /* 랜덤 명언 카드 */
         .quote-card {
-            background: white;
+            background: var(--card-bg);
             border-radius: 16px;
             padding: 30px 40px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05), 0 10px 20px rgba(0, 0, 0, 0.03);
+            box-shadow: 0 4px 20px var(--shadow);
             text-align: center;
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-        }
-
-        .quote-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.08), 0 15px 30px rgba(0, 0, 0, 0.05);
+            border: 1px solid var(--border);
         }
 
         .quote-text {
             font-size: 20px;
-            font-weight: 400;
-            color: #2c3e50;
+            color: var(--text-main);
             line-height: 1.6;
             margin-bottom: 12px;
             font-style: italic;
         }
 
-        .quote-text::before {
-            content: '"';
-            font-size: 28px;
-            color: #7c3aed;
-            margin-right: 4px;
-        }
-
-        .quote-text::after {
-            content: '"';
-            font-size: 28px;
-            color: #7c3aed;
-            margin-left: 4px;
-        }
-
         .quote-author {
             font-size: 14px;
-            color: #64748b;
+            color: var(--text-sub);
             font-weight: 500;
         }
 
-        /* 메인 질문 영역 */
         .main-section {
             display: flex;
             flex-direction: column;
@@ -94,24 +98,18 @@
 
         .question-input {
             width: 100%;
-            padding: 20px 60px 20px 24px;
+            padding: 22px 60px 22px 28px;
             font-size: 16px;
-            border: 2px solid #e2e8f0;
-            border-radius: 24px;
-            background: white;
-            color: #2c3e50;
+            border: 2px solid var(--border);
+            border-radius: 99px;
+            background: var(--card-bg);
+            color: var(--text-main);
             outline: none;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            box-shadow: 0 4px 15px var(--shadow);
         }
 
         .question-input:focus {
-            border-color: #7c3aed;
-            box-shadow: 0 6px 12px rgba(124, 58, 237, 0.15);
-        }
-
-        .question-input::placeholder {
-            color: #94a3b8;
+            border-color: var(--accent);
         }
 
         .send-button {
@@ -119,86 +117,81 @@
             right: 8px;
             top: 50%;
             transform: translateY(-50%);
-            width: 44px;
-            height: 44px;
+            width: 48px;
+            height: 48px;
             border: none;
             border-radius: 50%;
-            background: linear-gradient(135deg, #7c3aed 0%, #6366f1 100%);
+            background: linear-gradient(135deg, var(--accent) 0%, #6366f1 100%);
             color: white;
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
-            transition: all 0.3s ease;
-            box-shadow: 0 2px 8px rgba(124, 58, 237, 0.3);
+            box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
         }
 
-        .send-button:hover {
-            background: linear-gradient(135deg, #6d28d9 0%, #4f46e5 100%);
-            transform: translateY(-50%) scale(1.05);
-            box-shadow: 0 4px 12px rgba(124, 58, 237, 0.4);
-        }
-
-        .send-button:active {
-            transform: translateY(-50%) scale(0.95);
-        }
-
-        .send-button svg {
-            width: 20px;
-            height: 20px;
-        }
-
-        /* 질문 예시 버튼 (요청하신 둥근 알약 모양 적용) */
         .example-questions {
             display: flex;
             flex-wrap: wrap;
-            gap: 12px;
+            gap: 10px;
             justify-content: center;
         }
 
         .example-btn {
-            padding: 12px 24px;
-            background: white;
-            border: 1px solid #e2e8f0;
+            padding: 10px 20px;
+            background: var(--card-bg);
+            border: 1px solid var(--border);
             border-radius: 999px;
-            /* 완전 둥근 모양 */
             font-size: 14px;
             font-weight: 600;
-            color: #64748b;
+            color: var(--text-sub);
             cursor: pointer;
-            transition: all 0.3s ease;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.03);
         }
 
         .example-btn:hover {
-            border-color: #7c3aed;
-            color: #7c3aed;
-            background: #f5f3ff;
+            border-color: var(--accent);
+            color: var(--accent);
             transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(124, 58, 237, 0.15);
         }
 
-        /* 답변 영역 */
+        /* [수정] 답변 영역 및 대화 초기화 버튼 스타일 */
         .response-area {
-            background: white;
-            border-radius: 16px;
-            padding: 40px;
+            background: var(--card-bg);
+            border-radius: 20px;
+            padding: 30px;
             min-height: 200px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
             display: none;
-            /* JS에서 active 클래스로 제어 */
-            align-items: center;
-            justify-content: center;
-            color: #94a3b8;
-            font-size: 16px;
+            box-shadow: 0 4px 20px var(--shadow);
+            border: 1px solid var(--border);
+            position: relative;
+            /* 버튼 배치를 위해 추가 */
+            flex-direction: column;
         }
 
         .response-area.active {
             display: flex;
         }
 
-        .response-content {
-            width: 100%;
+        /* 채팅창 내부 초기화 버튼 */
+        .clear-chat-btn {
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            padding: 6px 12px;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-sub);
+            background: var(--bg-color);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.2s;
+            z-index: 10;
+        }
+
+        .clear-chat-btn:hover {
+            border-color: var(--accent);
+            color: var(--accent);
         }
 
         .chat-history {
@@ -208,7 +201,8 @@
             display: flex;
             flex-direction: column;
             gap: 12px;
-            padding: 8px 4px;
+            margin-top: 25px;
+            /* 버튼 공간 확보 */
         }
 
         .chat-msg {
@@ -221,370 +215,164 @@
 
         .chat-bubble {
             max-width: 80%;
-            border-radius: 14px;
-            padding: 10px 12px;
-            line-height: 1.4;
-            font-size: 14px;
-            border: 1px solid #e5e7eb;
-            background: #ffffff;
+            border-radius: 18px;
+            padding: 12px 16px;
+            border: 1px solid var(--border);
+            background: var(--bg-color);
+            line-height: 1.5;
+            font-size: 15px;
+            color: var(--text-main);
         }
 
         .chat-msg.user .chat-bubble {
-            background: #f5f3ff;
-            border-color: #ddd6fe;
+            background: var(--chat-user-bg);
+            border-color: var(--chat-user-bg);
+            color: var(--chat-user-text);
         }
 
-        .chat-meta {
-            font-size: 11px;
-            color: #94a3b8;
-            margin-top: 4px;
-        }
-
-        /* 하단 정보 카드 */
         .info-grid {
             position: fixed;
             left: 50%;
             transform: translateX(-50%);
-            bottom: 12px;
+            bottom: 20px;
             width: calc(100% - 40px);
             max-width: 900px;
             display: grid;
             grid-template-columns: repeat(4, 1fr);
-            gap: 12px;
+            gap: 15px;
             z-index: 50;
         }
 
         .info-card {
-            background: white;
-            border-radius: 14px;
-            padding: 12px 14px;
-            border: 1px solid #eef2f7;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(12px);
+            border-radius: 16px;
+            padding: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.6);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.05);
+            transition: transform 0.2s ease;
+        }
+
+        body.dark-mode .info-card {
+            background: rgba(30, 41, 59, 0.85);
+            border-color: rgba(255, 255, 255, 0.1);
         }
 
         .info-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.08);
+            transform: translateY(-3px);
         }
 
         .info-title {
             display: flex;
-            align-items: center;
             justify-content: space-between;
-            gap: 10px;
-            font-size: 14px;
+            font-size: 13px;
             font-weight: 700;
-            color: #334155;
+            color: var(--text-sub);
             margin-bottom: 8px;
         }
 
         .badge {
             font-size: 11px;
-            font-weight: 600;
-            color: #7c3aed;
-            background: #f5f3ff;
-            border: 1px solid #ede9fe;
-            padding: 4px 10px;
-            border-radius: 999px;
+            font-weight: 700;
+            color: var(--accent);
+            background: rgba(139, 92, 246, 0.1);
+            padding: 4px 8px;
+            border-radius: 6px;
         }
 
         .info-value {
-            font-size: 18px;
-            font-weight: 700;
-            color: #0f172a;
+            font-size: 20px;
+            font-weight: 800;
+            color: var(--text-main);
             margin-bottom: 4px;
+            letter-spacing: -0.5px;
         }
 
         .info-sub {
             font-size: 12px;
-            color: #64748b;
-            line-height: 1.4;
+            color: var(--text-sub);
+            font-weight: 500;
         }
 
-        .mini-muted {
-            font-size: 11px;
-            color: #94a3b8;
-            margin-top: 8px;
-        }
-
-        /* 반응형 */
         @media (max-width: 900px) {
             .info-grid {
                 grid-template-columns: repeat(2, 1fr);
-                bottom: 10px;
             }
         }
 
-        @media (max-width: 520px) {
+        @media (max-width: 500px) {
             .info-grid {
                 grid-template-columns: 1fr;
             }
         }
 
-        /* ===== 로그인 화면 디자인 (원본 복구) ===== */
-        .hidden {
-            display: none !important;
-        }
-
-        #loginView {
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 24px;
-        }
-
-        .login-shell {
-            width: 100%;
-            max-width: 1100px;
-            display: grid;
-            grid-template-columns: 1.2fr 0.8fr;
-            gap: 18px;
-            align-items: stretch;
-        }
-
-        .login-hero {
-            border-radius: 22px;
-            padding: 38px 40px;
-            color: #0f172a;
-            background:
-                radial-gradient(1200px 600px at 20% 20%, rgba(124, 58, 237, 0.18), transparent 50%),
-                radial-gradient(900px 500px at 80% 10%, rgba(99, 102, 241, 0.18), transparent 55%),
-                linear-gradient(135deg, #f8fafc 0%, #eef2ff 45%, #f5f3ff 100%);
-            border: 1px solid #e5e7eb;
-            box-shadow: 0 10px 30px rgba(2, 6, 23, 0.08);
-            position: relative;
-            overflow: hidden;
-        }
-
-        .login-hero h1 {
-            font-size: 34px;
-            letter-spacing: -0.02em;
-            margin-bottom: 10px;
-        }
-
-        .login-hero p {
-            font-size: 15px;
-            color: #334155;
-            line-height: 1.6;
-            max-width: 54ch;
-        }
-
-        .login-hero .hero-badges {
-            margin-top: 18px;
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-        }
-
-        .hero-pill {
-            font-size: 12px;
-            font-weight: 700;
-            color: #4f46e5;
-            background: rgba(79, 70, 229, 0.10);
-            border: 1px solid rgba(79, 70, 229, 0.22);
-            padding: 6px 10px;
-            border-radius: 999px;
-        }
-
-        .login-panel {
-            background: white;
-            border: 1px solid #eef2f7;
-            border-radius: 22px;
-            padding: 30px 26px;
-            box-shadow: 0 10px 30px rgba(2, 6, 23, 0.10);
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-        }
-
-        .login-title {
-            font-size: 20px;
-            font-weight: 800;
-            color: #0f172a;
-            margin-bottom: 8px;
-        }
-
-        .login-desc {
-            font-size: 13px;
-            color: #64748b;
-            margin-bottom: 18px;
-            line-height: 1.5;
-        }
-
-        .login-field {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-            margin-bottom: 12px;
-        }
-
-        .login-field label {
-            font-size: 12px;
-            font-weight: 700;
-            color: #334155;
-        }
-
-        .login-input {
-            width: 100%;
-            padding: 14px 14px;
-            border: 2px solid #e2e8f0;
-            border-radius: 14px;
-            outline: none;
-            font-size: 14px;
-            transition: all 0.2s ease;
-        }
-
-        .login-input:focus {
-            border-color: #7c3aed;
-            box-shadow: 0 0 0 4px rgba(124, 58, 237, 0.10);
-        }
-
-        .login-actions {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
-            margin-top: 10px;
-        }
-
-        .btn-primary {
-            padding: 12px 14px;
-            border: none;
-            border-radius: 14px;
-            background: linear-gradient(135deg, #7c3aed 0%, #6366f1 100%);
-            color: white;
-            font-weight: 800;
-            cursor: pointer;
-        }
-
-        .btn-ghost {
-            padding: 12px 14px;
-            border-radius: 14px;
-            border: 1px solid #e2e8f0;
-            background: white;
-            color: #334155;
-            font-weight: 800;
-            cursor: pointer;
-        }
-
-        .login-links {
-            display: flex;
-            justify-content: space-between;
-            margin-top: 15px;
-            font-size: 13px;
-        }
-
-        .btn-link {
-            border: none;
-            background: transparent;
-            padding: 5px;
-            font-size: 13px;
-            font-weight: 700;
-            color: #7c3aed;
-            cursor: pointer;
-        }
-
-        .btn-link:hover {
-            text-decoration: underline;
-        }
-
-        .login-hint {
-            margin-top: 12px;
-            font-size: 12px;
-            color: #ef4444;
-            line-height: 1.5;
-        }
-
-        /* [추가] 회원가입/비번찾기 패널 스타일 */
-        #authExtra {
-            margin-top: 15px;
-            padding-top: 15px;
-            border-top: 1px solid #e2e8f0;
-        }
-
-        .extra-title {
-            font-size: 14px;
-            font-weight: 700;
-            color: #334155;
-            margin-bottom: 10px;
-        }
-
-        /* 툴바 */
         #toolbar {
-            position: fixed;
-            top: 12px;
+            position: absolute;
+            top: 20px;
             left: 50%;
             transform: translateX(-50%);
             width: calc(100% - 40px);
             max-width: 900px;
-            background: rgba(255, 255, 255, 0.90);
-            backdrop-filter: blur(10px);
-            border: 1px solid #e2e8f0;
-            border-radius: 16px;
-            padding: 10px 12px;
+            background: var(--card-bg);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--border);
+            border-radius: 99px;
+            padding: 8px 20px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            z-index: 60;
-            box-shadow: 0 6px 20px rgba(2, 6, 23, 0.08);
+            z-index: 100;
+            box-shadow: 0 4px 20px var(--shadow);
         }
 
         .tb-left {
+            font-weight: 800;
+            color: var(--text-main);
             display: flex;
             align-items: center;
             gap: 10px;
-            color: #0f172a;
-            font-weight: 900;
+            font-size: 14px;
         }
 
         .tb-chip {
-            font-size: 12px;
-            font-weight: 800;
-            color: #7c3aed;
-            background: #f5f3ff;
-            border: 1px solid #ede9fe;
+            font-size: 11px;
+            background: var(--bg-color);
             padding: 4px 10px;
-            border-radius: 999px;
+            border-radius: 20px;
+            color: var(--text-sub);
+            font-weight: 600;
         }
 
         .tb-center {
             display: flex;
-            align-items: center;
-            gap: 10px;
-            flex-wrap: wrap;
-            justify-content: center;
-            padding: 0 10px;
+            gap: 15px;
         }
 
         .tb-ind {
-            display: inline-flex;
+            display: flex;
             align-items: center;
-            gap: 8px;
-            padding: 6px 10px;
-            border-radius: 999px;
-            border: 1px solid #e2e8f0;
-            background: rgba(248, 250, 252, 0.8);
+            gap: 6px;
             font-size: 12px;
-            font-weight: 800;
-            color: #0f172a;
-            user-select: none;
+            font-weight: 700;
+            color: var(--text-sub);
         }
 
         .dot {
-            width: 9px;
-            height: 9px;
+            width: 8px;
+            height: 8px;
             border-radius: 50%;
-            background: #94a3b8;
-            box-shadow: 0 0 0 2px rgba(148, 163, 184, 0.20);
+            background: #cbd5e1;
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
         }
 
         .ok .dot {
-            background: #22c55e;
+            background: #10b981;
+            box-shadow: 0 0 8px #10b981;
         }
 
         .bad .dot {
             background: #ef4444;
+            box-shadow: 0 0 8px #ef4444;
         }
 
         .tb-right {
@@ -594,42 +382,262 @@
         }
 
         .tb-btn {
-            padding: 8px 12px;
-            border-radius: 999px;
-            border: 1px solid #e2e8f0;
-            background: white;
-            font-size: 13px;
-            font-weight: 800;
+            padding: 8px 16px;
+            border: 1px solid var(--border);
+            background: var(--bg-color);
+            border-radius: 99px;
+            font-size: 12px;
+            font-weight: 700;
             cursor: pointer;
-            color: #334155;
+            color: var(--text-sub);
+            transition: all 0.2s;
         }
 
         .tb-btn:hover {
-            border-color: #7c3aed;
-            color: #7c3aed;
-            background: #f5f3ff;
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        .tb-btn.active {
+            background: var(--accent);
+            color: white;
+            border-color: var(--accent);
+        }
+
+        /* ... (로그인 관련 CSS 기존과 동일) ... */
+        .hidden {
+            display: none !important;
+        }
+
+        #loginView {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            background: #f1f5f9;
+        }
+
+        .login-shell {
+            width: 100%;
+            max-width: 1000px;
+            display: grid;
+            grid-template-columns: 1.2fr 0.8fr;
+            gap: 20px;
+        }
+
+        .login-hero {
+            border-radius: 24px;
+            padding: 40px;
+            color: white;
+            background: linear-gradient(135deg, #4338ca 0%, #6d28d9 50%, #7c3aed 100%);
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            box-shadow: 0 20px 40px rgba(79, 70, 229, 0.3);
+        }
+
+        .login-hero::before {
+            content: '';
+            position: absolute;
+            top: -60px;
+            left: -60px;
+            width: 250px;
+            height: 250px;
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 50%;
+            filter: blur(50px);
+        }
+
+        .login-hero::after {
+            content: '';
+            position: absolute;
+            bottom: -60px;
+            right: -60px;
+            width: 350px;
+            height: 350px;
+            background: rgba(255, 255, 255, 0.12);
+            border-radius: 50%;
+            filter: blur(60px);
+        }
+
+        .login-hero h1 {
+            font-size: 42px;
+            font-weight: 900;
+            margin-bottom: 20px;
+            z-index: 1;
+            letter-spacing: -1px;
+            line-height: 1.2;
+            text-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .login-hero p {
+            font-size: 17px;
+            color: rgba(255, 255, 255, 0.95);
+            line-height: 1.6;
+            z-index: 1;
+            font-weight: 400;
+        }
+
+        @keyframes float {
+            0% {
+                transform: translateY(0px);
+            }
+
+            50% {
+                transform: translateY(-6px);
+            }
+
+            100% {
+                transform: translateY(0px);
+            }
+        }
+
+        .hero-pill {
+            display: inline-block;
+            margin-top: 24px;
+            font-size: 13px;
+            font-weight: 700;
+            color: #4338ca;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 10px 16px;
+            border-radius: 999px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            z-index: 1;
+            animation: float 3s ease-in-out infinite;
+        }
+
+        .login-panel {
+            background: white;
+            border-radius: 24px;
+            padding: 40px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.05);
+            border: 1px solid white;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .login-title {
+            font-size: 24px;
+            font-weight: 800;
+            margin-bottom: 5px;
+            color: #1e293b;
+        }
+
+        .login-desc {
+            font-size: 14px;
+            color: #64748b;
+            margin-bottom: 25px;
+        }
+
+        .login-field {
+            margin-bottom: 15px;
+        }
+
+        .login-field label {
+            display: block;
+            font-size: 13px;
+            font-weight: 700;
+            color: #475569;
+            margin-bottom: 6px;
+        }
+
+        .login-input {
+            width: 100%;
+            padding: 14px;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            outline: none;
+            transition: 0.2s;
+            font-size: 14px;
+        }
+
+        .login-input:focus {
+            border-color: #8b5cf6;
+            background: #fcfaff;
+        }
+
+        .btn-primary {
+            width: 100%;
+            padding: 14px;
+            border: none;
+            border-radius: 12px;
+            background: #8b5cf6;
+            color: white;
+            font-weight: 700;
+            cursor: pointer;
+            margin-bottom: 10px;
+            font-size: 15px;
+            transition: background 0.2s;
+        }
+
+        .btn-primary:hover {
+            background: #7c3aed;
+        }
+
+        .btn-ghost {
+            width: 100%;
+            padding: 14px;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            background: white;
+            color: #475569;
+            font-weight: 700;
+            cursor: pointer;
+            font-size: 15px;
+        }
+
+        .login-links {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 15px;
+            font-size: 13px;
+        }
+
+        .link-btn {
+            background: none;
+            border: none;
+            color: #8b5cf6;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .link-btn:hover {
+            text-decoration: underline;
         }
 
         .guestbar {
-            position: sticky;
-            top: 12px;
-            z-index: 50;
-            display: flex;
-            justify-content: flex-end;
-            gap: 10px;
-            margin: 12px auto 0;
-            max-width: 900px;
-            padding: 0 2px;
+            position: fixed;
+            top: 20px;
+            right: 30px;
+            z-index: 100;
         }
 
         .gbtn {
-            border: 1px solid rgba(0, 0, 0, 0.10);
-            background: rgba(255, 255, 255, 0.85);
+            padding: 10px 20px;
+            border: 1px solid white;
+            background: rgba(255, 255, 255, 0.8);
             backdrop-filter: blur(6px);
-            padding: 10px 12px;
-            border-radius: 12px;
-            font-weight: 600;
+            border-radius: 99px;
+            font-weight: 700;
             cursor: pointer;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+        }
+
+        #authExtra {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid #f1f5f9;
+        }
+
+        .extra-title {
+            font-size: 15px;
+            font-weight: 700;
+            margin-bottom: 12px;
+            color: #334155;
         }
     </style>
 </head>
@@ -638,51 +646,37 @@
     <div id="loginView">
         <div class="login-shell">
             <div class="login-hero">
-                <h1>Team2 통합 대시보드</h1>
-                <p>날씨 · 전력(KPX) · 환율 · 시간 정보를 한 화면에서 확인하고, 질문 입력을 통해 데이터를 조회합니다.</p>
-                <div class="hero-badges"><span class="hero-pill">K8s 기반 통합 관제 UI</span></div>
+                <h1>AI + API 기반 사이트</h1>
+                <p>Kubernetes 기반 인프라 관제 및 실시간<br>날씨, 전력, 환율 데이터를 한눈에 확인하세요.</p>
+                <div><span class="hero-pill">🚀 v4.1 Refined</span></div>
             </div>
-
             <div class="login-panel">
-                <div class="login-title">로그인</div>
-                <div class="login-desc">관리자(admin)는 상단 툴바가 노출됩니다.</div>
-
-                <div class="login-field">
-                    <label>아이디</label>
-                    <input class="login-input" id="loginUser" type="text" placeholder="admin 또는 계정">
+                <div class="login-title">환영합니다! 👋</div>
+                <div class="login-desc">로그인하여 사이트에 접속하세요.</div>
+                <div class="login-field"><label>아이디</label><input class="login-input" id="loginUser" placeholder="아이디">
                 </div>
-                <div class="login-field">
-                    <label>비밀번호</label>
-                    <input class="login-input" id="loginPass" type="password" placeholder="admin123">
-                </div>
-
-                <div class="login-actions">
-                    <button class="btn-primary" id="btnLogin">로그인</button>
-                    <button class="btn-ghost" id="btnGuest">비회원 입장</button>
-                </div>
-
-                <div class="login-links">
-                    <button class="btn-link" id="btnShowSignup">회원가입</button>
-                    <button class="btn-link" id="btnShowReset">비밀번호 재설정</button>
-                </div>
-                <div id="loginHint" class="login-hint"></div>
-
+                <div class="login-field"><label>비밀번호</label><input class="login-input" id="loginPass" type="password"
+                        placeholder="비밀번호"></div>
+                <button class="btn-primary" id="btnLogin">로그인</button>
+                <button class="btn-ghost" id="btnGuest">비회원 입장</button>
+                <div class="login-links"><button class="link-btn" id="btnShowSignup">회원가입</button><button
+                        class="link-btn" id="btnShowReset">비밀번호 찾기</button></div>
                 <div id="authExtra" class="hidden">
                     <div id="signupPane" class="hidden">
                         <div class="extra-title">회원가입</div>
-                        <input class="login-input" id="suUser" placeholder="아이디 (4자 이상)" style="margin-bottom:8px">
-                        <input class="login-input" id="suPass" type="password" placeholder="비밀번호 (6자 이상)"
-                            style="margin-bottom:8px">
+                        <input class="login-input" id="suUser" placeholder="새 아이디" style="margin-bottom:8px;">
+                        <input class="login-input" id="suPass" type="password" placeholder="새 비밀번호"
+                            style="margin-bottom:8px;">
                         <button class="btn-primary" id="btnDoSignup">가입하기</button>
-                        <button class="btn-ghost" onclick="closeExtra()">취소</button>
+                        <button class="link-btn" onclick="closeExtra()" style="width:100%">닫기</button>
                     </div>
                     <div id="resetPane" class="hidden">
                         <div class="extra-title">비밀번호 재설정</div>
-                        <input class="login-input" id="rpUser" placeholder="가입한 아이디" style="margin-bottom:8px">
+                        <input class="login-input" id="rpUser" placeholder="기존 아이디" style="margin-bottom:8px;">
                         <input class="login-input" id="rpNewPass" type="password" placeholder="새 비밀번호"
-                            style="margin-bottom:8px">
+                            style="margin-bottom:8px;">
                         <button class="btn-primary" id="btnDoReset">변경하기</button>
-                        <button class="btn-ghost" onclick="closeExtra()">취소</button>
+                        <button class="link-btn" onclick="closeExtra()" style="width:100%">닫기</button>
                     </div>
                 </div>
             </div>
@@ -699,50 +693,48 @@
                 <span class="tb-ind" id="indTime"><span class="dot"></span>Time</span>
             </div>
             <div class="tb-right">
-                <button class="tb-btn" id="tbRefresh">위젯 갱신</button>
+                <button class="tb-btn" id="tbDarkMode">🌙 다크 모드</button>
+                <button class="tb-btn" id="tbAutoRefresh">🔄 자동 갱신: 꺼짐</button>
                 <button class="tb-btn" id="tbLogout">로그아웃</button>
             </div>
         </div>
-        <div id="guestBar" class="guestbar hidden">
-            <button class="gbtn" id="guestLogout">로그아웃</button>
-        </div>
+        <div id="guestBar" class="guestbar hidden"><button class="gbtn" id="guestLogout">로그아웃</button></div>
 
         <div class="container">
             <div class="quote-card">
                 <div class="quote-text" id="quoteText">Loading...</div>
                 <div class="quote-author" id="quoteAuthor"></div>
             </div>
-
             <div class="main-section">
                 <div class="input-wrapper">
-                    <input type="text" class="question-input" id="questionInput" placeholder="질문을 입력하세요..."
-                        autocomplete="off">
+                    <input type="text" class="question-input" id="questionInput"
+                        placeholder="질문을 입력하세요 (예: 날씨, 전력, 환율, 시간)" autocomplete="off">
                     <button class="send-button" id="sendButton">▲</button>
                 </div>
                 <div class="example-questions">
-                    <button class="example-btn" data-question="오늘 날씨 알려줘">현재 날씨</button>
-                    <button class="example-btn" data-question="전력 사용량">전력 정보</button>
-                    <button class="example-btn" data-question="환율 정보">환율 확인</button>
-                    <button class="example-btn" data-question="현재 시간">현재 시간</button>
+                    <button class="example-btn" data-question="오늘 날씨 알려줘">☁️ 현재 날씨</button>
+                    <button class="example-btn" data-question="전력 사용량">⚡ 전력 정보</button>
+                    <button class="example-btn" data-question="환율 정보">💰 환율 확인</button>
+                    <button class="example-btn" data-question="현재 시간">🕒 현재 시간</button>
                 </div>
             </div>
 
             <div class="response-area" id="responseArea">
+                <button class="clear-chat-btn" id="btnClearChatInner">대화 초기화</button>
                 <div class="chat-history" id="chatHistory"></div>
             </div>
         </div>
 
         <div class="info-grid">
             <div class="info-card">
-                <div class="info-title">날씨 <span class="badge">Open-Meteo</span></div>
+                <div class="info-title">날씨 <span class="badge">기상청 정보</span></div>
                 <div class="info-value" id="weatherValue">—</div>
                 <div class="info-sub" id="weatherSub">로딩 중...</div>
             </div>
             <div class="info-card">
-                <div class="info-title">전력(KPX) <span class="badge">지역별</span></div>
+                <div class="info-title">전력(KPX) <span class="badge">전력 효율</span></div>
                 <div class="info-value" id="energyValue">—</div>
                 <div class="info-sub" id="energySub">로딩 중...</div>
-                <div class="mini-muted" id="energyMeta"></div>
             </div>
             <div class="info-card">
                 <div class="info-title">환율 <span class="badge">USD→KRW</span></div>
@@ -750,7 +742,7 @@
                 <div class="info-sub" id="fxSub">로딩 중...</div>
             </div>
             <div class="info-card">
-                <div class="info-title">시간 <span class="badge">KST</span></div>
+                <div class="info-title">시간 <span class="badge">Asia/Seoul</span></div>
                 <div class="info-value" id="timeValue">—</div>
                 <div class="info-sub" id="timeSub">로딩 중...</div>
             </div>
@@ -758,114 +750,65 @@
     </div>
 
     <script>
-        // =========================================
-        // [설정] 핵심 상수
-        // =========================================
         const AUTH_KEY = "team2_auth_v1";
         const USERS_KEY = "team2_users_v1";
         const API_BASE = "";
-        const WIDGETS = {
-            energyUrl: "/api/energy/kpx/now?page=1&perPage=2",
-            fxUrl: "https://open.er-api.com/v6/latest/USD",
-            weatherUrl: "https://api.open-meteo.com/v1/forecast?latitude=37.5665&longitude=126.978&current_weather=true"
-        };
+        const WIDGETS = { energyUrl: "/api/energy/kpx/now?page=1&perPage=2", fxUrl: "https://open.er-api.com/v6/latest/USD", weatherUrl: "/api/weather/short" };
+        const LOCATIONS = [{ name: "서울", nx: 60, ny: 127 }];
         const HEALTH = { weather: null, energy: null, fx: null, time: null };
+        let autoRefreshTimer = null;
 
-        // --- 1. 인증 로직 (회원가입/비번찾기/로그인) ---
         function loadUsers() { return JSON.parse(localStorage.getItem(USERS_KEY) || "{}"); }
         function saveUsers(u) { localStorage.setItem(USERS_KEY, JSON.stringify(u)); }
-
-        // 패널 열기/닫기
-        document.getElementById("btnShowSignup").onclick = () => {
-            document.getElementById("authExtra").classList.remove("hidden");
-            document.getElementById("signupPane").classList.remove("hidden");
-            document.getElementById("resetPane").classList.add("hidden");
-        };
-        document.getElementById("btnShowReset").onclick = () => {
-            document.getElementById("authExtra").classList.remove("hidden");
-            document.getElementById("signupPane").classList.add("hidden");
-            document.getElementById("resetPane").classList.remove("hidden");
-        };
+        document.getElementById("btnShowSignup").onclick = () => { document.getElementById("authExtra").classList.remove("hidden"); document.getElementById("signupPane").classList.remove("hidden"); document.getElementById("resetPane").classList.add("hidden"); };
+        document.getElementById("btnShowReset").onclick = () => { document.getElementById("authExtra").classList.remove("hidden"); document.getElementById("signupPane").classList.add("hidden"); document.getElementById("resetPane").classList.remove("hidden"); };
         window.closeExtra = () => document.getElementById("authExtra").classList.add("hidden");
 
-        // 회원가입 실행
         document.getElementById("btnDoSignup").onclick = () => {
             const u = document.getElementById("suUser").value.trim();
             const p = document.getElementById("suPass").value.trim();
-            if (!u || !p) return alert("아이디와 비밀번호를 입력하세요.");
-            if (u === "admin") return alert("admin 아이디는 사용할 수 없습니다.");
-
+            if (!u || !p) return alert("아이디와 비밀번호를 모두 입력해주세요.");
+            if (u === "admin") return alert("이 아이디는 사용할 수 없습니다.");
             const users = loadUsers();
-            if (users[u]) return alert("이미 존재하는 아이디입니다.");
-
-            users[u] = { pass: p, joined: Date.now() };
-            saveUsers(users);
-            alert("가입 완료! 로그인 해주세요.");
-            closeExtra();
+            if (users[u]) return alert("이미 사용 중인 아이디입니다.\n다른 아이디를 사용해 주세요.");
+            users[u] = { pass: p }; saveUsers(users);
+            alert("회원가입이 완료되었습니다!\n이제 로그인해주세요."); closeExtra();
         };
-
-        // 비번 재설정 실행
-        document.getElementById("btnDoReset").onclick = () => {
-            const u = document.getElementById("rpUser").value.trim();
-            const p = document.getElementById("rpNewPass").value.trim();
-            if (!u || !p) return alert("정보를 입력하세요.");
-
-            const users = loadUsers();
-            if (!users[u]) return alert("존재하지 않는 아이디입니다.");
-
-            users[u].pass = p;
-            saveUsers(users);
-            alert("비밀번호가 변경되었습니다.");
-            closeExtra();
-        };
-
-        // 로그인 실행
-        document.getElementById("btnLogin").onclick = () => {
-            const u = document.getElementById("loginUser").value.trim();
-            const p = document.getElementById("loginPass").value.trim();
-
-            // 관리자 확인
-            if (u === "admin" && p === "admin123") {
-                localStorage.setItem(AUTH_KEY, JSON.stringify({ user: u, role: "admin" }));
-                location.reload();
-                return;
-            }
-            // 일반 회원 확인
-            const users = loadUsers();
-            if (users[u] && users[u].pass === p) {
-                localStorage.setItem(AUTH_KEY, JSON.stringify({ user: u, role: "user" }));
-                location.reload();
-            } else {
-                document.getElementById("loginHint").textContent = "아이디 또는 비밀번호가 틀렸습니다.";
-            }
-        };
-
-        document.getElementById("btnGuest").onclick = () => {
-            localStorage.setItem(AUTH_KEY, JSON.stringify({ user: "Guest", role: "guest" }));
-            location.reload();
-        };
-
+        document.getElementById("btnDoReset").onclick = () => { const u = document.getElementById("rpUser").value.trim(), p = document.getElementById("rpNewPass").value.trim(); if (!u || !p) return alert("입력하세요"); const users = loadUsers(); if (!users[u]) return alert("존재하지 않는 아이디입니다."); users[u].pass = p; saveUsers(users); alert("비밀번호가 변경되었습니다."); closeExtra(); };
+        document.getElementById("btnLogin").onclick = () => { const u = document.getElementById("loginUser").value.trim(), p = document.getElementById("loginPass").value.trim(); if (u === "admin" && p === "admin123") { localStorage.setItem(AUTH_KEY, JSON.stringify({ user: u, role: "admin" })); location.reload(); return; } const users = loadUsers(); if (users[u] && users[u].pass === p) { localStorage.setItem(AUTH_KEY, JSON.stringify({ user: u, role: "user" })); location.reload(); } else { alert("아이디 또는 비밀번호가 일치하지 않습니다."); } };
+        document.getElementById("btnGuest").onclick = () => { localStorage.setItem(AUTH_KEY, JSON.stringify({ user: "Guest", role: "guest" })); location.reload(); };
         const logout = () => { localStorage.removeItem(AUTH_KEY); location.reload(); };
-        document.getElementById("tbLogout").onclick = logout;
-        document.getElementById("guestLogout").onclick = logout;
+        document.getElementById("tbLogout").onclick = logout; document.getElementById("guestLogout").onclick = logout;
 
-        // --- 2. 데이터 위젯 (API 로직) ---
+        async function loadWeather() {
+            try {
+                const loc = LOCATIONS[0];
+                const url = `${API_BASE}${WIDGETS.weatherUrl}?nx=${loc.nx}&ny=${loc.ny}`;
+                const res = await fetch(url);
+                if (!res.ok) throw new Error("API Error");
+                const json = await res.json();
+                if (json.hourly && json.hourly.length > 0) {
+                    const current = json.hourly[0];
+                    let tempVal = Math.round(parseFloat(current.TMP));
+                    let sign = tempVal > 0 ? "+" : "";
+                    document.getElementById("weatherValue").textContent = `${sign}${tempVal}°C`;
+                    document.getElementById("weatherSub").textContent = `${loc.name} (기상청 정보)`; // 텍스트 수정
+                    HEALTH.weather = true;
+                } else { throw new Error("Invalid Data"); }
+            } catch { document.getElementById("weatherValue").textContent = "N/A"; HEALTH.weather = false; }
+            updateHealth();
+        }
         async function loadEnergy() {
             try {
                 const res = await fetch(API_BASE + WIDGETS.energyUrl);
                 const json = await res.json();
                 const row = json.data[0];
-                const year = new Date().getFullYear();
-                document.getElementById("energyValue").textContent = `연도 ${year}`;
-                document.getElementById("energySub").textContent = `서울 ${row["서울"] || '-'} · 부산 ${row["부산"] || '-'} · 인천 ${row["인천"] || '-'}`;
+                document.getElementById("energyValue").textContent = `연도 ${new Date().getFullYear()}`;
+                document.getElementById("energySub").textContent = `서울 ${row["서울"] || '-'} · 부산 ${row["부산"] || '-'}`;
                 HEALTH.energy = true;
-            } catch {
-                document.getElementById("energyValue").textContent = "데이터 없음";
-                HEALTH.energy = false;
-            }
+            } catch { HEALTH.energy = false; }
             updateHealth();
         }
-
         async function loadFx() {
             try {
                 const res = await fetch(WIDGETS.fxUrl);
@@ -874,24 +817,9 @@
                 document.getElementById("fxValue").textContent = rate.toFixed(2);
                 document.getElementById("fxSub").textContent = `1 USD = ${rate.toFixed(2)} KRW`;
                 HEALTH.fx = true;
-            } catch {
-                document.getElementById("fxValue").textContent = "연결 실패";
-                HEALTH.fx = false;
-            }
+            } catch { HEALTH.fx = false; }
             updateHealth();
         }
-
-        async function loadWeather() {
-            try {
-                const res = await fetch(WIDGETS.weatherUrl);
-                const data = await res.json();
-                document.getElementById("weatherValue").textContent = `${data.current_weather.temperature}°C`;
-                document.getElementById("weatherSub").textContent = "서울 현재 기온";
-                HEALTH.weather = true;
-            } catch { HEALTH.weather = false; }
-            updateHealth();
-        }
-
         function loadTime() {
             const now = new Date();
             document.getElementById("timeValue").textContent = now.toLocaleTimeString('ko-KR', { hour12: false, hour: '2-digit', minute: '2-digit' });
@@ -899,88 +827,89 @@
             HEALTH.time = true;
             updateHealth();
         }
-
         function updateHealth() {
             Object.keys(HEALTH).forEach(k => {
                 const el = document.getElementById(`ind${k.charAt(0).toUpperCase() + k.slice(1)}`);
-                if (el) {
-                    el.classList.remove("ok", "bad");
-                    el.classList.add(HEALTH[k] ? "ok" : "bad");
-                }
+                if (el) { el.classList.remove("ok", "bad"); el.classList.add(HEALTH[k] ? "ok" : "bad"); }
             });
         }
 
-        async function refreshWidgets() {
+        async function refreshWidgets(isManual = false) {
             await Promise.allSettled([loadWeather(), loadEnergy(), loadFx(), loadTime()]);
-            alert("위젯 정보가 갱신되었습니다.");
+            if (isManual) {
+                // [수정] 수동 갱신 시 버튼 텍스트 한글화 및 피드백
+                const btn = document.getElementById("tbAutoRefresh");
+                const originalText = btn.textContent;
+                btn.textContent = "갱신 완료!";
+                setTimeout(() => btn.textContent = originalText, 1000);
+            }
         }
-        document.getElementById("tbRefresh").onclick = refreshWidgets;
 
-        // --- 3. 채팅 & 기타 ---
+        // --- [v4.1 Features & Fixes] ---
+        // 1. Dark Mode (한글화)
+        document.getElementById("tbDarkMode").onclick = () => {
+            document.body.classList.toggle("dark-mode");
+            const isDark = document.body.classList.contains("dark-mode");
+            document.getElementById("tbDarkMode").textContent = isDark ? "☀️ 라이트 모드" : "🌙 다크 모드";
+        };
+        // 2. Auto Refresh (한글화)
+        document.getElementById("tbAutoRefresh").onclick = () => {
+            const btn = document.getElementById("tbAutoRefresh");
+            if (autoRefreshTimer) {
+                clearInterval(autoRefreshTimer);
+                autoRefreshTimer = null;
+                btn.textContent = "🔄 자동 갱신: 꺼짐";
+                btn.classList.remove("active");
+            } else {
+                refreshWidgets(false); // 즉시 1회 실행
+                autoRefreshTimer = setInterval(() => refreshWidgets(false), 10000); // 10초마다
+                btn.textContent = "🔄 자동 갱신: 켜짐";
+                btn.classList.add("active");
+            }
+        };
+        // 3. [수정] Clear Chat (내부 버튼으로 변경)
+        document.getElementById("btnClearChatInner").onclick = () => {
+            if (confirm("대화 내용을 모두 지우시겠습니까?")) {
+                document.getElementById("chatHistory").innerHTML = "";
+            }
+        };
+
+        // Chat & Init
         function loadQuote() {
-            const list = [
-                { t: "Simplicity is the soul of efficiency.", a: "Austin Freeman" },
-                { t: "Data is the new oil.", a: "Clive Humby" },
-                { t: "Code never lies, comments sometimes do.", a: "Ron Jeffries" }
-            ];
+            const list = [{ t: "Simplicity is the soul of efficiency.", a: "Austin Freeman" }, { t: "Code never lies.", a: "Ron Jeffries" }];
             const r = list[Math.floor(Math.random() * list.length)];
-            document.getElementById("quoteText").textContent = r.t;
-            document.getElementById("quoteAuthor").textContent = "- " + r.a;
+            document.getElementById("quoteText").textContent = r.t; document.getElementById("quoteAuthor").textContent = "- " + r.a;
         }
-
         function sendQuestion() {
             const inp = document.getElementById("questionInput");
             const q = inp.value.trim();
             if (!q) return;
-
-            const area = document.getElementById("responseArea");
             const hist = document.getElementById("chatHistory");
-            area.classList.add("active");
-
+            document.getElementById("responseArea").classList.add("active");
             hist.innerHTML += `<div class="chat-msg user"><div class="chat-bubble">${q}</div></div>`;
             inp.value = "";
 
-            let ans = "질문을 이해하지 못했습니다. (날씨, 전력, 환율)";
-            if (q.includes("날씨")) ans = `현재 기온은 ${document.getElementById("weatherValue").textContent} 입니다.`;
+            // [수정] 챗봇 응답 메시지 자연스럽게 변경
+            let ans = "질문을 이해하지 못했습니다. (날씨, 전력, 환율, 시간)";
+            if (q.includes("날씨")) ans = `현재 날씨는 ${document.getElementById("weatherValue").textContent} 입니다.`;
             else if (q.includes("환율")) ans = `현재 환율은 ${document.getElementById("fxValue").textContent}원 입니다.`;
-            else if (q.includes("전력")) ans = `전력 정보: ${document.getElementById("energySub").textContent}`;
+            else if (q.includes("전력")) ans = `현재 전력 정보입니다: ${document.getElementById("energySub").textContent}`;
+            else if (q.includes("시간")) ans = `현재 시간은 ${document.getElementById("timeValue").textContent} 입니다.`;
 
-            setTimeout(() => {
-                hist.innerHTML += `<div class="chat-msg"><div class="chat-bubble">${ans}</div></div>`;
-                hist.scrollTop = hist.scrollHeight;
-            }, 400);
+            setTimeout(() => { hist.innerHTML += `<div class="chat-msg"><div class="chat-bubble">${ans}</div></div>`; hist.scrollTop = hist.scrollHeight; }, 400);
         }
-
         document.getElementById("sendButton").onclick = sendQuestion;
-        document.getElementById("questionInput").addEventListener("keypress", (e) => {
-            if (e.key === "Enter") sendQuestion();
-        });
+        document.getElementById("questionInput").addEventListener("keypress", (e) => { if (e.key === "Enter") sendQuestion(); });
+        document.querySelectorAll(".example-btn").forEach(btn => { btn.onclick = () => { document.getElementById("questionInput").value = btn.getAttribute("data-question"); sendQuestion(); }; });
 
-        // 질문 예시 버튼 클릭 연결
-        document.querySelectorAll(".example-btn").forEach(btn => {
-            btn.onclick = () => {
-                document.getElementById("questionInput").value = btn.getAttribute("data-question");
-                sendQuestion();
-            };
-        });
-
-        // --- 초기화 ---
         window.onload = () => {
             const auth = JSON.parse(localStorage.getItem(AUTH_KEY));
             if (auth) {
                 document.getElementById("loginView").classList.add("hidden");
                 document.getElementById("dashboardView").classList.remove("hidden");
-
-                if (auth.role === "admin") {
-                    document.getElementById("toolbar").classList.remove("hidden");
-                    document.getElementById("tbUserChip").textContent = auth.user;
-                } else {
-                    document.getElementById("guestBar").classList.remove("hidden");
-                }
-
-                loadQuote();
-                refreshWidgets();
-                setInterval(loadTime, 30000);
+                if (auth.role === "admin") { document.getElementById("toolbar").classList.remove("hidden"); document.getElementById("tbUserChip").textContent = auth.user; }
+                else document.getElementById("guestBar").classList.remove("hidden");
+                loadQuote(); refreshWidgets(false); setInterval(loadTime, 30000);
             }
         };
     </script>

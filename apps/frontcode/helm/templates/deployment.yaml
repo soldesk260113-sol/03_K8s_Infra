@@ -4,7 +4,7 @@ metadata:
   name: web-v2-dashboard
   namespace: production
 spec:
-  replicas: 2
+  replicas: {{ .Values.replicaCount }}
   selector:
     matchLabels:
       app: web-v2-dashboard
@@ -17,8 +17,8 @@ spec:
       - name: harbor-secret
       containers:
       - name: web
-        image: 10.2.2.40:5000/library/web-v2-dashboard:latest
-        imagePullPolicy: Always
+        image: {{ .Values.image.repository }}:{{ .Values.image.tag }}
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
         ports:
         - containerPort: 80
 

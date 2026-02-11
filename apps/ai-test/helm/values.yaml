@@ -54,4 +54,4 @@ affinity: {}
 
 env:
   - name: OLLAMA_HOST
-    value: "http://10.2.2.40:11434"
+    value: "http://ollama-service:11434"

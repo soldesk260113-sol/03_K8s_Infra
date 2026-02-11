@@ -3,9 +3,9 @@
 replicaCount: 3
 
 image:
-  repository: 10.2.2.40:5000/library/web-v2-dashboard
+  repository: 10.2.2.40:5000/library/frontcode
   pullPolicy: Always
-  tag: "latest-1"
+  tag: "latest-ai"
 
 service:
   type: ClusterIP

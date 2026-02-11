@@ -19,6 +19,13 @@ spec:
             name: web-v2-service
             port:
               number: 80
+      - path: /api/ai(/|$)(.*)
+        pathType: Prefix
+        backend:
+          service:
+            name: ai-test
+            port:
+              number: 3000
       - path: /api/main/weather(/|$)(.*)
         pathType: Prefix
         backend:

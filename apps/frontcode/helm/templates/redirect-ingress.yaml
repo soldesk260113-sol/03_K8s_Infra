@@ -1,0 +1,21 @@
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: production-root-redirect
+  namespace: production
+  annotations:
+    nginx.ingress.kubernetes.io/permanent-redirect: /main
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: cafekec.shop
+    http:
+      paths:
+      - path: /
+        pathType: Exact
+        backend:
+          service:
+            name: web-v2-service
+            port:
+              number: 80

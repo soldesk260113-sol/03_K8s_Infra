@@ -5,7 +5,7 @@ replicaCount: 1
 image:
   repository: 10.2.2.40:5000/library/aitest
   pullPolicy: Always
-  tag: "latest"
+  tag: "debug"
 
 imagePullSecrets: []
 nameOverride: ""

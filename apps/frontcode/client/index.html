@@ -692,6 +692,7 @@
                 <span class="tb-ind" id="indTime"><span class="dot"></span>Time</span>
             </div>
             <div class="tb-right">
+                <button class="tb-btn" id="tbAIChat">🤖 AI Chat</button>
                 <button class="tb-btn" id="tbDarkMode">🌙 다크 모드</button>
                 <button class="tb-btn" id="tbAutoRefresh">🔄 자동 갱신: 꺼짐</button>
                 <button class="tb-btn" id="tbLogout">로그아웃</button>
@@ -756,6 +757,7 @@
         const LOCATIONS = [{ name: "서울", nx: 60, ny: 127 }];
         const HEALTH = { weather: null, energy: null, fx: null, time: null };
         let autoRefreshTimer = null;
+        let chatMessages = []; // AI Chat History
 
         function loadUsers() { return JSON.parse(localStorage.getItem(USERS_KEY) || "{}"); }
         function saveUsers(u) { localStorage.setItem(USERS_KEY, JSON.stringify(u)); }
@@ -778,6 +780,7 @@
         document.getElementById("btnGuest").onclick = () => { localStorage.setItem(AUTH_KEY, JSON.stringify({ user: "Guest", role: "guest" })); location.reload(); };
         const logout = () => { localStorage.removeItem(AUTH_KEY); location.reload(); };
         document.getElementById("tbLogout").onclick = logout; document.getElementById("guestLogout").onclick = logout;
+        document.getElementById("tbAIChat").onclick = () => window.open("/ai", "_blank");
 
         async function loadWeather() {
             try {
@@ -879,23 +882,52 @@
             const r = list[Math.floor(Math.random() * list.length)];
             document.getElementById("quoteText").textContent = r.t; document.getElementById("quoteAuthor").textContent = "- " + r.a;
         }
-        function sendQuestion() {
+        async function sendQuestion() {
             const inp = document.getElementById("questionInput");
             const q = inp.value.trim();
             if (!q) return;
+
             const hist = document.getElementById("chatHistory");
             document.getElementById("responseArea").classList.add("active");
+
+            // Add User Message to UI
             hist.innerHTML += `<div class="chat-msg user"><div class="chat-bubble">${q}</div></div>`;
             inp.value = "";
+            hist.scrollTop = hist.scrollHeight;
 
-            // [수정] 챗봇 응답 메시지 자연스럽게 변경
-            let ans = "질문을 이해하지 못했습니다. (날씨, 전력, 환율, 시간)";
-            if (q.includes("날씨")) ans = `현재 날씨는 ${document.getElementById("weatherValue").textContent} 입니다.`;
-            else if (q.includes("환율")) ans = `현재 환율은 ${document.getElementById("fxValue").textContent}원 입니다.`;
-            else if (q.includes("전력")) ans = `현재 전력 정보입니다: ${document.getElementById("energySub").textContent}`;
-            else if (q.includes("시간")) ans = `현재 시간은 ${document.getElementById("timeValue").textContent} 입니다.`;
+            // Add to History
+            chatMessages.push({ role: "user", content: q });
 
-            setTimeout(() => { hist.innerHTML += `<div class="chat-msg"><div class="chat-bubble">${ans}</div></div>`; hist.scrollTop = hist.scrollHeight; }, 400);
+            // Show Loading
+            const loadingId = "loading-" + Date.now();
+            hist.innerHTML += `<div class="chat-msg" id="${loadingId}"><div class="chat-bubble">Thinking...</div></div>`;
+            hist.scrollTop = hist.scrollHeight;
+
+            try {
+                // Call AI API (Proxied via /api/ai -> ai-test service)
+                const res = await fetch("/api/ai/api/chat", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        model: "llama3.1:latest",
+                        messages: chatMessages,
+                        stream: false
+                    })
+                });
+
+                if (!res.ok) throw new Error("AI Server Error");
+                const data = await res.json();
+                const ans = data.message.content;
+
+                // Update UI with Answer
+                document.getElementById(loadingId).remove();
+                hist.innerHTML += `<div class="chat-msg"><div class="chat-bubble">${ans}</div></div>`;
+                chatMessages.push({ role: "assistant", content: ans });
+
+            } catch (e) {
+                document.getElementById(loadingId).innerHTML = `<div class="chat-bubble" style="color:red">Error: ${e.message}</div>`;
+            }
+            hist.scrollTop = hist.scrollHeight;
         }
         document.getElementById("sendButton").onclick = sendQuestion;
         document.getElementById("questionInput").addEventListener("keypress", (e) => { if (e.key === "Enter") sendQuestion(); });

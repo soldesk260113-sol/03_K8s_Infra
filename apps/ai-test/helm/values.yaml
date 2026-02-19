@@ -1,11 +1,11 @@
 # Default values for ai-test.
 
-replicaCount: 1
+replicaCount: 2
 
 image:
   repository: 10.2.2.40:5000/library/aitest
   pullPolicy: Always
-  tag: "debug-fix6"
+  tag: "debug-fix7"
 
 imagePullSecrets:
   - name: harbor-secret

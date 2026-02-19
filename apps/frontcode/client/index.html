@@ -1661,13 +1661,13 @@ ${buildMultiZoneHintKR(target.country)}` : "";
         "태국", "방콕", "싱가포르", "베트남", "하노이", "필리핀", "마닐라", "호주", "시드니"
       ];
       if (FOREIGN_WEATHER_KEYWORDS.some(k => lower.includes(k))) {
-        return "현재는 대한민국 지역 날씨만 지원합니다.";
+        return null; // AI가 처리하도록
       }
 
       const loc = detectLocationFromText(userText);
       // 테이블/권역 매칭 실패 시(기본값으로 서울을 찍는 대신) 안내
       if (!loc || loc.matchedBy === "default") {
-        return "현재는 대한민국 주요 도시/권역 날씨만 지원합니다. 예) 서울/인천/수원/청주/대전/춘천/강릉/대구/부산/울산/전주/광주/목포/여수/제주, 또는 강원도/충북/경남 처럼 물어봐주세요.";
+        return null; // 지역 미인식 → AI가 처리하도록
       }
 
       const { nx, ny } = loc;
@@ -1816,11 +1816,11 @@ ${buildMultiZoneHintKR(target.country)}` : "";
           if (fxAns) parts.push({ kind: "FX", pos: getFirstIndex(lowerQ, ["환율", "fx", "exchange rate", "달러", "usd", "엔", "jpy", "위안", "cny", "유로", "eur", "krw"]), text: fxAns });
         }
 
-        // WEATHER
+        // WEATHER → 로컬 응답 대신 AI 컨텍스트로 활용
         let weatherAns = null;
         if (!excludeWEATHER) {
           weatherAns = await buildWeatherAnswerIfAsked(q);
-          if (weatherAns) parts.push({ kind: "WEATHER", pos: getFirstIndex(lowerQ, ["날씨", "weather", "기온", "습도", "강수", "비", "temperature", "rain"]), text: weatherAns });
+          // ❌ parts.push 제거 → AI(RAG)에게 컨텍스트로 전달
         }
 
         if (parts.length > 0) {
@@ -1843,9 +1843,19 @@ ${buildMultiZoneHintKR(target.country)}` : "";
           return;
         }
 
-        // ✅ 3) 그 외 질문만 AI
+        // ✅ 3) AI(RAG) 호출 - 날씨 데이터 컨텍스트 주입
+        const aiMessages = [...chatMessages];
+        if (weatherAns) {
+          // 날씨 API 데이터를 user 메시지 앞에 컨텍스트로 주입
+          aiMessages.push({
+            role: "user",
+            content: `[실시간 날씨 데이터]\n${weatherAns}\n\n위 날씨 데이터를 참고해서 다음 질문에 답해줘: ${q}`
+          });
+        } else {
+          aiMessages.push({ role: "user", content: q });
+        }
 
-        const { via, content } = await callAI(chatMessages);
+        const { via, content } = await callAI(aiMessages);
         stopThinking();
         setChatBubbleById(loadingId, content, false);
         chatMessages.push({ role: "assistant", content });

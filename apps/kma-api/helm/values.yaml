@@ -108,6 +108,7 @@ env:
   
   # API Keys
   KMA_AUTHKEY: "MmNnsQppQqGjZ7EKaaKhgQ"
+  AIRKOREA_SERVICE_KEY: "93f2e3191276074224c438872e7cc3a95b6bcff3adbf538ceb8dba2938a233d5"
 
   # Timezone
   TZ: "Asia/Seoul"

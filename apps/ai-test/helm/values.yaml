@@ -57,6 +57,6 @@ env:
   - name: OLLAMA_HOST
     value: "http://10.2.2.40:11434"
   - name: KMA_API_URL
-    value: "http://kma-api:8080/short"
+    value: "http://kma-api:8080/weather/short"
   - name: ENERGY_API_URL
     value: "http://energy-api:8000/kpx/now"

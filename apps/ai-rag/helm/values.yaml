@@ -10,7 +10,7 @@ image:
 imagePullSecrets:
   - name: harbor-secret
 nameOverride: ""
-fullnameOverride: "ai-test"
+fullnameOverride: "ai-rag"
 
 serviceAccount:
   create: true

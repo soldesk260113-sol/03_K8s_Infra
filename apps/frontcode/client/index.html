@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>AI + API 통합 대시보드</title>
+  <title>AI + API 기반 통합 대시보드</title>
   <style>
     :root {
       --bg-color: #f8fafc;
@@ -264,6 +264,33 @@
 
     /* ✅ Weather/Energy/FX/Time 인디케이터 영역 완전 제거 */
 
+
+    .tb-center {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      justify-content: center;
+      flex: 1;
+      min-width: 0;
+    }
+
+    .tb-time {
+      font-size: 12px;
+      padding: 6px 12px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: rgba(241, 245, 249, .9);
+      color: var(--text-sub);
+      font-weight: 900;
+      white-space: nowrap;
+    }
+
+    body.dark-mode .tb-time {
+      background: rgba(11, 18, 32, .9);
+      border-color: #223047;
+      color: #cbd5e1;
+    }
+
     .tb-right {
       display: flex;
       align-items: center;
@@ -376,6 +403,17 @@
     }
 
     .chat-topbar.active {
+      display: flex;
+    }
+
+
+    .chat-bottombar {
+      display: none;
+      justify-content: flex-end;
+      margin-top: 12px;
+    }
+
+    .chat-bottombar.active {
       display: flex;
     }
 
@@ -628,7 +666,6 @@
           <div class="tb-logo">A</div>
           <span class="tb-chip" id="tbUserChip">admin</span>
         </div>
-
         <div class="tb-right">
           <button class="tb-btn" id="tbDarkMode">🌙 다크 모드</button>
           <button class="tb-btn" id="tbLogout">로그아웃</button>
@@ -660,21 +697,17 @@
                 placeholder="질문을 입력하세요 (예: 날씨, 미세먼지, 인프라, 쿠버, 전력 등)" autocomplete="off">
               <button class="send-button" id="sendButton">▲</button>
             </div>
-
-            <div class="example-questions">
-              <button class="example-btn" data-question="오늘 서울 날씨 요약해줘">☁️ 현재 날씨</button>
-              <button class="example-btn" data-question="미세먼지(PM10/PM2.5) 상태 알려줘">🌫️ 미세먼지</button>
-              <button class="example-btn" data-question="쿠버네티스가 뭐야?">☸️ Kubernetes</button>
-              <button class="example-btn" data-question="우리 구조에서 Ingress VIP와 API VIP 차이 설명해줘">🧠 아키텍처</button>
-            </div>
           </div>
 
-          <div class="chat-topbar" id="chatTopbar">
-            <button class="clear-chat-out" id="btnClearChatOuter">대화 초기화</button>
-          </div>
+          <div class="chat-topbar" id="chatTopbar"></div>
 
           <div class="response-area" id="responseArea">
             <div class="chat-history" id="chatHistory"></div>
+
+
+            <div class="chat-bottombar" id="chatBottomBar">
+              <button class="clear-chat-out" id="btnClearChatOuter">대화 초기화</button>
+            </div>
           </div>
         </div>
       </div>
@@ -688,7 +721,7 @@
               <div class="info-sub" id="weatherSub">로딩 중...</div>
             </div>
             <div class="info-card">
-              <div class="info-title">강수 <span class="badge">기상청 초단기</span></div>
+              <div class="info-title">강수확률 <span class="badge">기상청 단기</span></div>
               <div class="info-value" id="rainValue">—</div>
               <div class="info-sub" id="rainSub">로딩 중...</div>
             </div>
@@ -725,13 +758,128 @@
     const AI_DIRECT_ENDPOINT = "http://10.2.2.40:11434/api/chat";
 
     const WIDGETS = {
-      weatherUrl: "/api/main/weather/weather/ultra",
-      dustPm10Url: "/api/main/weather/dust/seoul/pm10",
-      dustPm25Url: "/api/main/weather/dust/seoul/pm25",
-      forecastUrl: "/api/main/weather/forecast",
+      weatherUrl: "/api/weather/weather/ultra",
+      dustPm10Url: "/api/dust/seoul/pm10",
+      dustPm25Url: "/api/dust/seoul/pm25",
+      forecastUrl: "/api/weather/weather/short",
+      fxUrl: "https://api.frankfurter.dev/v1/latest",
     };
 
-    const LOCATIONS = [{ name: "서울", nx: 60, ny: 127 }];
+
+    // ==========================
+    // ✅ RAG 상태 표시 (선택)
+    // ==========================
+    async function updateRagChip() {
+      const ragChip = document.getElementById("ragChip");
+      const aiRouteChip = document.getElementById("aiRouteChip");
+      if (!ragChip || !aiRouteChip) return;
+
+      // KB(knowledge) 확인
+      try {
+        const r = await fetch("/api/knowledge");
+        if (!r.ok) throw new Error("kb http " + r.status);
+        const kb = await r.json();
+        const n = Array.isArray(kb) ? kb.length : 0;
+        ragChip.textContent = `RAG: ON (KB ${n})`;
+      } catch (e) {
+        ragChip.textContent = "RAG: — (KB X)";
+      }
+
+      // AI 라우트 표시(마지막 호출 경로)
+      const via = window.__lastAiVia || "—";
+      aiRouteChip.textContent = `AI: ${via}`;
+    }
+    // ✅ 주요 도시 격자(nx, ny) - 필요시 계속 추가
+    const LOCATIONS = [
+      // --- 수도권
+      { name: "서울", nx: 60, ny: 127, keywords: ["서울", "seoul"] },
+      { name: "인천", nx: 55, ny: 124, keywords: ["인천", "incheon"] },
+      { name: "수원", nx: 60, ny: 121, keywords: ["수원", "suwon"] },
+
+      // --- 충청권
+      { name: "대전", nx: 67, ny: 100, keywords: ["대전", "daejeon"] },
+      { name: "세종", nx: 66, ny: 103, keywords: ["세종", "sejong"] },
+      { name: "청주", nx: 69, ny: 106, keywords: ["청주", "cheongju"] },
+      { name: "천안", nx: 63, ny: 110, keywords: ["천안", "cheonan"] },
+
+      // --- 강원권
+      { name: "춘천", nx: 73, ny: 134, keywords: ["춘천", "chuncheon"] },
+      { name: "원주", nx: 76, ny: 122, keywords: ["원주", "wonju"] },
+      { name: "강릉", nx: 92, ny: 131, keywords: ["강릉", "gangneung"] },
+
+      // --- 영남권
+      { name: "대구", nx: 89, ny: 90, keywords: ["대구", "daegu"] },
+      { name: "부산", nx: 98, ny: 76, keywords: ["부산", "busan"] },
+      { name: "울산", nx: 102, ny: 84, keywords: ["울산", "ulsan"] },
+      { name: "안동", nx: 91, ny: 106, keywords: ["안동", "andong"] },
+      { name: "포항", nx: 102, ny: 94, keywords: ["포항", "pohang"] },
+      { name: "창원", nx: 90, ny: 77, keywords: ["창원", "changwon"] },
+
+      // --- 호남권
+      { name: "광주", nx: 58, ny: 74, keywords: ["광주", "gwangju"] },
+      { name: "전주", nx: 63, ny: 89, keywords: ["전주", "jeonju"] },
+      { name: "목포", nx: 50, ny: 67, keywords: ["목포", "mokpo"] },
+      { name: "여수", nx: 73, ny: 66, keywords: ["여수", "yeosu"] },
+
+      // --- 제주
+      { name: "제주", nx: 52, ny: 38, keywords: ["제주", "제주도", "jeju"] },
+    ];
+
+    // ✅ 도/권역/광역 단위 입력이 오면 대표 도시 격자로 안내(“근처 지역” 처리)
+    const REGION_FALLBACKS = [
+      { label: "경기", keywords: ["경기", "경기도"], locName: "수원" },
+      { label: "강원", keywords: ["강원", "강원도"], locName: "춘천" },
+      { label: "충북", keywords: ["충북", "충청북도"], locName: "청주" },
+      { label: "충남", keywords: ["충남", "충청남도"], locName: "천안" },
+      { label: "전북", keywords: ["전북", "전라북도"], locName: "전주" },
+      { label: "전남", keywords: ["전남", "전라남도"], locName: "목포" },
+      { label: "경북", keywords: ["경북", "경상북도"], locName: "안동" },
+      { label: "경남", keywords: ["경남", "경상남도"], locName: "창원" },
+      { label: "제주", keywords: ["제주", "제주도", "제주특별자치도"], locName: "제주" },
+    ];
+
+    function normalizePlaceText(s) {
+      return (s || "")
+        .toLowerCase()
+        .replace(/\s+/g, "")
+        // 행정구역 접미어(중간/끝 모두) 정리
+        .replace(/(특별자치도|특별자치시|광역시|특별시|자치도|자치시)/g, "")
+        .replace(/(도|시|군|구)/g, "");
+    }
+
+    function detectLocationFromText(text) {
+      const raw = (text || "");
+      const lower = raw.toLowerCase();
+      const norm = normalizePlaceText(raw);
+
+      // 1) 도시/대표지점(LOCATIONS) 우선 매칭
+      for (const loc of LOCATIONS) {
+        const hit = (loc.keywords || []).some(k => {
+          const kk = String(k).toLowerCase();
+          return lower.includes(kk) || norm.includes(normalizePlaceText(kk));
+        });
+        if (hit) {
+          return { ...loc, displayName: loc.name, matchedBy: "city" };
+        }
+      }
+
+      // 2) “강원도/충북/경남 …” 같은 권역/도 단위 → 대표 도시로 폴백
+      for (const r of REGION_FALLBACKS) {
+        const hit = (r.keywords || []).some(k => {
+          const kk = String(k).toLowerCase();
+          return lower.includes(kk) || norm.includes(normalizePlaceText(kk));
+        });
+        if (hit) {
+          const rep = LOCATIONS.find(x => x.name === r.locName) || LOCATIONS[0];
+          // 예: "강원도 날씨" → "강원(춘천 기준)"
+          return { ...rep, displayName: `${r.label}(${rep.name} 기준)`, matchedBy: "region" };
+        }
+      }
+
+      // 3) 못 찾으면 기본 서울(단, 안내문에서 표시 가능)
+      const def = LOCATIONS[0] || { name: "서울", nx: 60, ny: 127 };
+      return { ...def, displayName: `${def.name}(기본값)`, matchedBy: "default" };
+    }
 
     // ✅ AI 채팅 히스토리 (멀티턴)
     let chatMessages = [];
@@ -817,17 +965,85 @@
     }
 
     async function loadWeatherAndRain() {
+      const { nx, ny } = LOCATIONS[0];
+
+      // ✅ 초단기실황(온도/습도/강수량 RN1) - 운영에서 확인된 정상 경로 우선
+      const ultraCandidates = [
+        `${API_BASE}/api/weather/weather/ultra?nx=${nx}&ny=${ny}`, // ✅ OK (curl 확인)
+        `${API_BASE}/api/weather/ultra?nx=${nx}&ny=${ny}`,         // (예전 라우팅 대비)
+      ];
+
+      // ✅ 단기예보(강수확률 POP) - 환경별 경로 차이 대비
+      const shortCandidates = [
+        `${API_BASE}/api/weather/weather/short?nx=${nx}&ny=${ny}`, // ✅ FastAPI 실제 라우터
+        `${API_BASE}/api/weather/short?nx=${nx}&ny=${ny}`,         // (Ingress rewrite 설정에 따라)
+      ];
+
       try {
-        const { nx, ny } = LOCATIONS[0];
-        const url = `${API_BASE}${WIDGETS.weatherUrl}?nx=${nx}&ny=${ny}`;
-        const res = await fetch(url);
-        if (!res.ok) throw new Error(`weather http ${res.status}`);
-        const json = await res.json();
+        // -------- 1) ultra fetch --------
+        let ultraJson = null;
+        let lastErr = null;
 
-        const temp = safeNum(json.temperature_c);
-        const reh = safeNum(json.humidity_pct);
-        const rain = safeNum(json.rain_1h_mm);
+        for (const fullUrl of ultraCandidates) {
+          try {
+            const res = await fetch(fullUrl);
+            if (!res.ok) {
+              if (res.status === 404) throw new Error(`404 Not Found: ${fullUrl}`);
+              throw new Error(`http ${res.status}: ${fullUrl}`);
+            }
+            ultraJson = await res.json();
+            lastErr = null;
+            break;
+          } catch (e) {
+            lastErr = e;
+          }
+        }
+        if (!ultraJson) throw lastErr || new Error("ultra fetch failed");
 
+        const temp = safeNum(ultraJson.temperature_c);
+        const reh = safeNum(ultraJson.humidity_pct);
+        const rainMm = safeNum(ultraJson.rain_1h_mm);
+
+        // -------- 2) short fetch (POP) --------
+        let popPct = null;
+        try {
+          let shortJson = null;
+          for (const fullUrl of shortCandidates) {
+            try {
+              const res = await fetch(fullUrl);
+              if (!res.ok) {
+                if (res.status === 404) throw new Error(`404 Not Found: ${fullUrl}`);
+                throw new Error(`http ${res.status}: ${fullUrl}`);
+              }
+              shortJson = await res.json();
+              break;
+            } catch (e) {
+              // try next candidate
+            }
+          }
+
+          if (shortJson) {
+            // 1) { hourly:[{ POP: "30"}] }
+            const h0 = shortJson?.hourly?.[0];
+            popPct = safeNum(h0?.POP ?? h0?.pop ?? shortJson?.POP ?? shortJson?.pop);
+
+            // 2) { items:[{ category:"POP", fcstValue:"30"}] } 류
+            if (popPct === null && Array.isArray(shortJson?.items)) {
+              const popItem = shortJson.items.find(it => (it.category || "").toUpperCase() === "POP");
+              popPct = safeNum(popItem?.fcstValue ?? popItem?.value);
+            }
+
+            // 3) 배열이 바로 오는 타입
+            if (popPct === null && Array.isArray(shortJson)) {
+              const a0 = shortJson[0];
+              popPct = safeNum(a0?.POP ?? a0?.pop);
+            }
+          }
+        } catch (e2) {
+          // POP 없이 진행
+        }
+
+        // -------- UI 반영 --------
         if (temp !== null) {
           document.getElementById("weatherValue").textContent = `${Math.round(temp)}°C`;
           document.getElementById("weatherSub").textContent = (reh !== null) ? `습도 ${Math.round(reh)}%` : `실시간`;
@@ -836,13 +1052,21 @@
           document.getElementById("weatherSub").textContent = "데이터 없음";
         }
 
-        if (rain !== null) {
-          document.getElementById("rainValue").textContent = `${rain}mm`;
-          document.getElementById("rainSub").textContent = "1시간 강수(RN1)";
+        // 강수 카드: ✅ 강수확률(POP)만 메인 표기, 부가설명은 강수량(mm)만
+        const rainMmText = (rainMm !== null) ? `${rainMm}mm` : "—";
+
+        if (popPct !== null) {
+          document.getElementById("rainValue").textContent = `${Math.round(popPct)}%`;
+          document.getElementById("rainSub").textContent = `강수량 ${rainMmText}`;
+        } else if (rainMm !== null) {
+          // POP 못가져오면 확률은 비워두고 강수량만 표시
+          document.getElementById("rainValue").textContent = "—";
+          document.getElementById("rainSub").textContent = `강수량 ${rainMmText}`;
         } else {
           document.getElementById("rainValue").textContent = "—";
           document.getElementById("rainSub").textContent = "데이터 없음";
         }
+
       } catch (e) {
         console.error("Weather/Rain Fail:", e);
         document.getElementById("weatherValue").textContent = "N/A";
@@ -892,6 +1116,9 @@
         loadDust("pm10"),
         loadDust("pm25"),
       ]);
+
+      // RAG/AI 상태칩 업데이트 (실패해도 무시)
+      try { await updateRagChip(); } catch (e) { }
     }
 
     function loadQuote() {
@@ -926,12 +1153,12 @@
 
     function openChatUI() {
       document.getElementById("responseArea").classList.add("active");
-      document.getElementById("chatTopbar").classList.add("active");
+      document.getElementById("chatBottomBar").classList.add("active");
     }
 
     function closeChatUI() {
       document.getElementById("responseArea").classList.remove("active");
-      document.getElementById("chatTopbar").classList.remove("active");
+      document.getElementById("chatBottomBar").classList.remove("active");
     }
 
     function appendChat(role, text, opts = {}) {
@@ -953,13 +1180,37 @@
 
     async function callAI(messages) {
       const payload = {
-        model: "llama3.1:latest",
+        model: AI_MODEL,
         messages,
         stream: false
       };
 
+      // ✅ 1순위: main 오케스트레이터 (/api/chat) - RAG + 실시간 컨텍스트 주입
       try {
-        const res = await fetch("/api/ai/api/chat", {
+        const res0 = await fetch("/api/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+        if (!res0.ok) throw new Error(`orch http ${res0.status}`);
+        const data0 = await res0.json();
+
+        const content0 =
+          data0?.message?.content ??
+          data0?.choices?.[0]?.message?.content ??
+          data0?.response ??
+          null;
+
+        if (!content0) throw new Error("orch response invalid");
+        window.__lastAiVia = "orch";
+        return { via: "orch", content: content0 };
+      } catch (e0) {
+        console.warn("AI orchestrator failed, fallback to proxy:", e0.message);
+      }
+
+      // ✅ 2순위: 같은 도메인 프록시(기존 v2 방식)
+      try {
+        const res = await fetch(AI_PROXY_ENDPOINT, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload)
@@ -974,22 +1225,545 @@
           null;
 
         if (!content) throw new Error("proxy response invalid");
+        window.__lastAiVia = "proxy";
         return { via: "proxy", content };
       } catch (e1) {
         console.warn("AI proxy failed, fallback to direct:", e1.message);
       }
 
-      const res2 = await fetch("http://10.2.2.40:11434/api/chat", {
+      // ✅ 3순위: Ollama 직접 호출(내부망/테스트용) - 브라우저 CORS에 막힐 수 있음
+      const res2 = await fetch(AI_DIRECT_ENDPOINT, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)
       });
       if (!res2.ok) throw new Error(`direct http ${res2.status}`);
       const data2 = await res2.json();
-      const content2 = data2?.message?.content;
+      const content2 =
+        data2?.message?.content ??
+        data2?.choices?.[0]?.message?.content ??
+        data2?.response ??
+        null;
       if (!content2) throw new Error("direct response invalid");
+      window.__lastAiVia = "direct";
       return { via: "direct", content: content2 };
     }
+
+
+    // ================================
+    // ✅ Local Answers (TIME / FX / WEATHER) - AI 제외
+    // - 답변은 한국어/영어만
+    // ================================
+
+    // ---------------- TIME (Country-first resolver) ----------------
+    // Countries: KR / CN / JP / US only
+    // US: minimal zone options (ET/CT/MT/PT)
+    const TIME_COUNTRIES = [
+      {
+        code: "KR",
+        nameKR: "대한민국",
+        nameEN: "South Korea",
+        primaryTZ: "Asia/Seoul",
+        keywords: ["한국", "대한민국", "korea", "south korea", "republic of korea", "rok", "kr"],
+        options: [
+          { labelKR: "서울/전국", labelEN: "Seoul / Nationwide", tz: "Asia/Seoul", keywords: ["서울", "seoul", "부산", "busan", "대구", "daegu", "인천", "incheon", "광주", "gwangju", "대전", "daejeon", "울산", "ulsan", "세종", "sejong", "제주", "jeju", "수원", "suwon", "청주", "cheongju", "천안", "cheonan", "춘천", "chuncheon", "원주", "wonju", "강릉", "gangneung", "안동", "andong", "포항", "pohang", "창원", "changwon", "전주", "jeonju", "목포", "mokpo", "여수", "yeosu"] },
+        ],
+      },
+      {
+        code: "JP",
+        nameKR: "일본",
+        nameEN: "Japan",
+        primaryTZ: "Asia/Tokyo",
+        keywords: ["일본", "japan", "jp"],
+        options: [
+          { labelKR: "전국", labelEN: "Nationwide", tz: "Asia/Tokyo", keywords: ["도쿄", "tokyo", "오사카", "osaka"] },
+        ],
+      },
+      {
+        code: "CN",
+        nameKR: "중국",
+        nameEN: "China",
+        primaryTZ: "Asia/Shanghai",
+        keywords: ["중국", "china", "cn", "prc"],
+        options: [
+          { labelKR: "중국(기본)", labelEN: "China (default)", tz: "Asia/Shanghai", keywords: ["베이징", "beijing", "상하이", "shanghai"] },
+        ],
+      },
+      {
+        code: "US",
+        nameKR: "미국",
+        nameEN: "United States",
+        primaryTZ: "America/New_York",
+        keywords: ["미국", "usa", "us", "united states", "america"],
+        options: [
+          {
+            labelKR: "동부(ET)",
+            labelEN: "Eastern (ET)",
+            tz: "America/New_York",
+            keywords: ["동부", "eastern", "et", "뉴욕", "new york", "nyc", "워싱턴", "washington", "dc", "보스턴", "boston", "플로리다", "florida"],
+          },
+          {
+            labelKR: "중부(CT)",
+            labelEN: "Central (CT)",
+            tz: "America/Chicago",
+            keywords: ["중부", "central", "ct", "시카고", "chicago", "텍사스", "texas", "댈러스", "dallas", "휴스턴", "houston"],
+          },
+          {
+            labelKR: "산악(MT)",
+            labelEN: "Mountain (MT)",
+            tz: "America/Denver",
+            keywords: ["산악", "mountain", "mt", "덴버", "denver", "콜로라도", "colorado", "유타", "utah"],
+          },
+          {
+            labelKR: "태평양(PT)",
+            labelEN: "Pacific (PT)",
+            tz: "America/Los_Angeles",
+            keywords: ["태평양", "pacific", "pt", "la", "los angeles", "로스앤젤레스", "엘에이", "캘리포니아", "california", "샌프란시스코", "san francisco", "시애틀", "seattle"],
+          },
+        ],
+      },
+    ];
+
+    const TIME_QUESTION_KEYWORDS = [
+      "시간", "몇 시", "지금 몇시", "지금 몇 시", "현재 시간", "현지 시간", "몇시야",
+      "time", "what time", "current time", "local time", "now time"
+    ];
+
+    function isEnglishText(s) {
+      return /^[\x00-\x7F]*$/.test(s || "");
+    }
+
+    function isTimeQuestion(text) {
+      const lower = (text || "").toLowerCase();
+      return TIME_QUESTION_KEYWORDS.some(k => lower.includes(k));
+    }
+
+    function getTimePartsInTZ(tz) {
+      const now = new Date();
+      const dt = new Date(now.toLocaleString("en-US", { timeZone: tz }));
+
+      const yyyy = dt.getFullYear();
+      const mm = String(dt.getMonth() + 1).padStart(2, "0");
+      const dd = String(dt.getDate()).padStart(2, "0");
+      const HH = String(dt.getHours()).padStart(2, "0");
+      const MI = String(dt.getMinutes()).padStart(2, "0");
+      const SS = String(dt.getSeconds()).padStart(2, "0");
+
+      const dateStr = `${yyyy}-${mm}-${dd}`;
+      const timeStr = `${HH}:${MI}:${SS}`;
+
+      const weekdayKR = dt.toLocaleDateString("ko-KR", { weekday: "long" });
+      const weekdayEN = dt.toLocaleDateString("en-US", { weekday: "long" });
+
+      return { dateStr, timeStr, weekdayKR, weekdayEN };
+    }
+
+    function detectTimeTarget(text) {
+      const lower = (text || "").toLowerCase();
+
+      // ✅ 한국 도시명만 있어도 KR(Asia/Seoul)로 처리 (전국 동일 시간대)
+      const kr = TIME_COUNTRIES.find(x => x.code === "KR");
+      const krOpt = kr?.options?.[0];
+      if (krOpt?.keywords?.some(k => lower.includes(String(k).toLowerCase()))) {
+        return { country: kr, tz: krOpt.tz, labelKR: "지역", labelEN: "Local", usedOption: true, multi: false };
+      }
+
+
+      for (const c of TIME_COUNTRIES) {
+        if (!c.keywords?.some(k => lower.includes(k))) continue;
+
+        if (c.options?.length) {
+          for (const opt of c.options) {
+            if (opt.keywords?.some(k => lower.includes(k))) {
+              return { country: c, tz: opt.tz, labelKR: opt.labelKR, labelEN: opt.labelEN, usedOption: true, multi: c.options.length > 1 };
+            }
+          }
+        }
+
+        return { country: c, tz: c.primaryTZ, labelKR: null, labelEN: null, usedOption: false, multi: c.options?.length > 1 };
+      }
+
+      return { country: kr, tz: kr.primaryTZ, labelKR: null, labelEN: null, usedOption: false, multi: false, fallback: true };
+    }
+
+    function buildMultiZoneHintKR(country) {
+      if (!country || country.code !== "US") return "";
+      return "참고: 미국은 여러 시간대(동부/중부/산악/태평양)가 있어요. (예: '미국 캘리포니아', '미국 뉴욕'처럼 말하면 더 정확)";
+    }
+    function buildMultiZoneHintEN(country) {
+      if (!country || country.code !== "US") return "";
+      return "Note: The U.S. has multiple time zones (ET/CT/MT/PT). Say a region like 'California' or 'New York' for a precise answer.";
+    }
+
+    function buildTimeAnswerIfAsked(userText) {
+      if (!isTimeQuestion(userText)) return null;
+
+      const target = detectTimeTarget(userText);
+      const t = getTimePartsInTZ(target.tz);
+
+      const english = isEnglishText(userText);
+      const countryName = english ? target.country.nameEN : target.country.nameKR;
+      const optLabel = english ? target.labelEN : target.labelKR;
+
+      // ✅ 한국은 전국 동일 시간대(Asia/Seoul)이므로, 도시/권역명이 있으면 라벨에만 반영
+      let krPlaceLabel = null;
+      if (!english && target.country?.code === "KR") {
+        const loc = detectLocationFromText(userText);
+        if (loc && loc.matchedBy && loc.matchedBy !== "default") {
+          krPlaceLabel = String(loc.displayName || loc.name || "").replace("(기본값)", "").trim();
+        }
+      }
+
+      const needHint = target.multi && !target.usedOption;
+
+      if (english) {
+        const prefix = optLabel ? `${countryName} (${optLabel})` : `${countryName}`;
+        const hint = needHint ? `
+${buildMultiZoneHintEN(target.country)}` : "";
+        return pickOne([
+          `${prefix} time is ${t.timeStr} on ${t.weekdayEN}, ${t.dateStr}.${hint}`,
+          `Current time in ${prefix} is ${t.timeStr} (${t.weekdayEN}, ${t.dateStr}).${hint}`,
+          `It is ${t.timeStr} in ${prefix} right now (${t.weekdayEN}, ${t.dateStr}).${hint}`
+        ]);
+      } else {
+        // ✅ "청주 시간" → "대한민국 청주 시간은 ...", "시간"만 → "대한민국 시간은 ..."
+        const prefix = krPlaceLabel
+          ? `${countryName} ${krPlaceLabel}`
+          : (optLabel ? `${countryName} ${optLabel}` : `${countryName}`);
+
+        const hint = needHint ? `
+${buildMultiZoneHintKR(target.country)}` : "";
+        return pickOne([
+          `${prefix} 시간은 ${t.dateStr} ${t.weekdayKR} ${t.timeStr} 입니다.${hint}`,
+          `현재 ${prefix} 시간은 ${t.dateStr} ${t.weekdayKR} ${t.timeStr} 입니다.${hint}`,
+          `지금 ${prefix} 시간은 ${t.dateStr} ${t.weekdayKR} ${t.timeStr} 입니다.${hint}`
+        ]);
+      }
+    }
+
+
+    // ---------------- FX (AI 제외) ----------------
+    // ✅ "원" 단독 키워드는 지역명(강원/원주 등)과 충돌하므로 사용하지 않음
+    const FX_QUESTION_KEYWORDS = [
+      "환율", "exchange rate", "exchangerate", "fx",
+      "달러", "엔", "위안", "유로",
+      "usd", "jpy", "cny", "eur", "krw",
+      "원달러", "달러원", "usdkrw", "jpykrw", "cnykrw", "eurkrw"
+    ];
+
+    function isFxQuestion(text) {
+      const s = (text || "");
+      const lower = s.toLowerCase();
+
+      // 1) 명시적으로 "환율"을 물으면 무조건 FX
+      if (lower.includes("환율") || lower.includes("exchange rate") || lower.includes("fx")) return true;
+
+      // 2) 통화 단어/코드가 포함된 경우만 FX
+      const hasCurrencyWord = /(달러|엔|위안|유로|중국)/.test(s);
+      const hasCurrencyCode = /\b(usd|jpy|cny|eur|krw)\b/i.test(s);
+      const hasPairCompact = /(usdkrw|jpykrw|cnykrw|eurkrw)/i.test(s);
+
+      return hasCurrencyWord || hasCurrencyCode || hasPairCompact;
+    }
+
+    function detectFxPair(text) {
+      const s = (text || "");
+      const lower = s.toLowerCase();
+
+      // 기본: USD/KRW
+      let base = "USD", quote = "KRW";
+
+      // 명시 페어(usd/krw, usdkrw 등)
+      const m1 = lower.match(/\b(usd|jpy|cny|eur)\s*[/\-]?\s*(krw)\b/);
+      if (m1) { base = m1[1].toUpperCase(); quote = m1[2].toUpperCase(); return { base, quote }; }
+
+      const m2 = lower.match(/\b(krw)\s*[/\-]?\s*(usd|jpy|cny|eur)\b/);
+      if (m2) { base = m2[2].toUpperCase(); quote = m2[1].toUpperCase(); return { base, quote }; }
+
+      // 단어 기반
+      if (/(엔|jpy)/i.test(s)) base = "JPY";
+      if (/(위안|cny|중국)/i.test(s)) base = "CNY";
+      if (/(유로|eur)/i.test(s)) base = "EUR";
+      if (/(달러|usd)/i.test(s)) base = "USD";
+
+      // "원달러" 같은 표현은 USD/KRW 의미
+      // quote는 KRW 고정(우리 서비스 기준)
+      return { base, quote };
+    }
+
+    function formatFxLabelKR(base, quote) {
+      const map = { USD: "달러", JPY: "엔", CNY: "위안", EUR: "유로", KRW: "원" };
+      const b = map[base] || base;
+      const q = map[quote] || quote;
+      return `${b}/${q}`;
+    }
+
+    // ✅ 공통: 여러 URL 중 첫 성공 JSON 가져오기
+    async function fetchFirstOkJson(urls, fetchOpts) {
+      let lastErr = null;
+      for (const url of (urls || [])) {
+        try {
+          const res = await fetch(url, fetchOpts || undefined);
+          if (!res.ok) throw new Error(`http ${res.status}: ${url}`);
+          return await res.json();
+        } catch (e) {
+          lastErr = e;
+        }
+      }
+      throw lastErr || new Error("fetch failed");
+    }
+
+    function extractFxRate(json, base, quote) {
+      if (!json) return null;
+
+      // 1) { rate: 1333.1 } / { value: 1333.1 }
+      const direct = safeNum(json.rate ?? json.value ?? json.fx_rate ?? json.exrate);
+      if (direct !== null) return direct;
+
+      // 2) { base:"USD", quote:"KRW", rate:... }
+      if ((json.base || "").toUpperCase() === base && (json.quote || "").toUpperCase() === quote) {
+        const r = safeNum(json.rate ?? json.value);
+        if (r !== null) return r;
+      }
+
+      // 3) { rates: { KRW: 1333.1 } }
+      if (json.rates && typeof json.rates === "object") {
+        const r = safeNum(json.rates[quote] ?? json.rates[quote.toLowerCase()]);
+        if (r !== null) return r;
+      }
+
+      // 4) { data: { rate: ... } }
+      if (json.data && typeof json.data === "object") {
+        const r = safeNum(json.data.rate ?? json.data.value);
+        if (r !== null) return r;
+        if (json.data.rates && typeof json.data.rates === "object") {
+          const r2 = safeNum(json.data.rates[quote] ?? json.data.rates[quote.toLowerCase()]);
+          if (r2 !== null) return r2;
+        }
+      }
+
+      return null;
+    }
+
+    async function buildFxAnswerIfAsked(userText) {
+      if (!isFxQuestion(userText)) return null;
+
+      const english = isEnglishText(userText);
+      const { base, quote } = detectFxPair(userText);
+
+      // ✅ 외부 무료 환율 API를 브라우저에서 직접 호출 (인증키 없이)
+      // 1) Frankfurter (api.frankfurter.dev) : 최신 환율, No API keys
+      // 2) ExchangeRate-API Open Access (open.er-api.com) : No API key (일 1회 갱신)
+      const candidates = [
+        `${WIDGETS.fxUrl}?base=${encodeURIComponent(base)}&symbols=${encodeURIComponent(quote)}`,
+        `https://open.er-api.com/v6/latest/${encodeURIComponent(base)}`
+      ];
+
+      try {
+        const raw = await fetchFirstOkJson(candidates);
+        let rate = extractFxRate(raw, base, quote);
+
+        // open.er-api.com 응답 호환 (rates[QUOTE])
+        if (rate === null && raw && typeof raw === "object" && raw.rates) {
+          rate = safeNum(raw.rates[quote]);
+        }
+
+        if (rate === null) {
+          return english
+            ? "Sorry, I couldn't parse the exchange rate response."
+            : "죄송해요. 환율 응답을 해석하지 못했어요.";
+        }
+
+        const labelKR = formatFxLabelKR(base, quote);
+        const labelEN = `${base}/${quote}`;
+        const label = english ? labelEN : labelKR;
+
+        const digits = (base === "JPY") ? 3 : 2;
+        const rateStr = Number(rate).toFixed(digits);
+
+        if (english) {
+          return pickOne([
+            `The exchange rate for ${label} is ${rateStr}.`,
+            `Current ${label} rate is ${rateStr}.`,
+            `${label} is around ${rateStr} right now.`
+          ]);
+        }
+        return pickOne([
+          `${label} 환율은 ${rateStr} 입니다.`,
+          `현재 ${label} 기준 환율은 ${rateStr} 입니다.`,
+          `지금 ${label}는 ${rateStr} 수준입니다.`
+        ]);
+      } catch (e) {
+        console.error("FX Fail:", e);
+        return english
+          ? "Sorry, I couldn't fetch the exchange rate right now."
+          : "죄송해요. 지금은 환율 정보를 불러오지 못했어요.";
+      }
+    }
+
+    // ---------------- WEATHER (AI 제외) ----------------
+    const WEATHER_QUESTION_KEYWORDS = [
+      "날씨", "기온", "습도", "비", "강수", "눈", "우산", "강수확률",
+      "weather", "temperature", "rain", "snow", "humidity", "forecast", "precip"
+    ];
+
+    function isWeatherQuestion(text) {
+      const lower = (text || "").toLowerCase();
+      return WEATHER_QUESTION_KEYWORDS.some(k => lower.includes(k));
+    }
+
+    function normalizeUltra(raw) {
+      if (!raw || typeof raw !== "object") return null;
+      const temp = safeNum(raw.temperature_c ?? raw.temp_c ?? raw.temp ?? raw.t1h);
+      const hum = safeNum(raw.humidity_pct ?? raw.hum_pct ?? raw.reh);
+      const rain = safeNum(raw.rain_1h_mm ?? raw.rn1 ?? raw.rain);
+      return { temp, hum, rain };
+    }
+
+    function extractPop(raw) {
+      if (!raw || typeof raw !== "object") return null;
+      const h0 = raw?.hourly?.[0];
+      let pop = safeNum(h0?.POP ?? h0?.pop ?? raw?.POP ?? raw?.pop);
+
+      if (pop === null && Array.isArray(raw?.items)) {
+        const it = raw.items.find(x => (x.category || "").toUpperCase() === "POP");
+        pop = safeNum(it?.fcstValue ?? it?.value);
+      }
+      if (pop === null && Array.isArray(raw)) {
+        pop = safeNum(raw?.[0]?.POP ?? raw?.[0]?.pop);
+      }
+      return pop;
+    }
+
+    async function buildWeatherAnswerIfAsked(userText) {
+      if (!isWeatherQuestion(userText)) return null;
+      const lower = (userText || "").toLowerCase();
+
+      // ✅ 한국(대한민국) 이외 지역 날씨 요청은 차단
+      const FOREIGN_WEATHER_KEYWORDS = [
+        "tokyo", "osaka", "kyoto", "nagoya", "sapporo", "fukuoka", "japan", "jp",
+        "beijing", "shanghai", "guangzhou", "shenzhen", "china", "cn",
+        "hong kong", "hk", "taipei", "taiwan", "tw",
+        "new york", "los angeles", "san francisco", "seattle", "usa", "us", "united states",
+        "london", "manchester", "uk", "united kingdom", "england",
+        "paris", "france", "berlin", "germany", "rome", "italy", "madrid", "spain",
+        "bangkok", "thailand", "singapore", "sg", "hanoi", "vietnam", "manila", "philippines",
+        "sydney", "melbourne", "australia", "au",
+        "도쿄", "오사카", "일본", "중국", "베이징", "상하이", "미국", "영국", "런던", "프랑스", "파리", "독일", "베를린",
+        "태국", "방콕", "싱가포르", "베트남", "하노이", "필리핀", "마닐라", "호주", "시드니"
+      ];
+      if (FOREIGN_WEATHER_KEYWORDS.some(k => lower.includes(k))) {
+        return "현재는 대한민국 지역 날씨만 지원합니다.";
+      }
+
+      const loc = detectLocationFromText(userText);
+      // 테이블/권역 매칭 실패 시(기본값으로 서울을 찍는 대신) 안내
+      if (!loc || loc.matchedBy === "default") {
+        return "현재는 대한민국 주요 도시/권역 날씨만 지원합니다. 예) 서울/인천/수원/청주/대전/춘천/강릉/대구/부산/울산/전주/광주/목포/여수/제주, 또는 강원도/충북/경남 처럼 물어봐주세요.";
+      }
+
+      const { nx, ny } = loc;
+
+      const ultraCandidates = [
+        `${API_BASE}/api/weather/weather/ultra?nx=${nx}&ny=${ny}`,
+        `${API_BASE}/api/weather/ultra?nx=${nx}&ny=${ny}`,
+        `${API_BASE}${WIDGETS.weatherUrl}?nx=${nx}&ny=${ny}`,
+      ];
+
+      const shortCandidates = [
+        `${API_BASE}/api/weather/weather/short?nx=${nx}&ny=${ny}`,
+        `${API_BASE}/api/weather/short?nx=${nx}&ny=${ny}`,
+        `${API_BASE}${WIDGETS.forecastUrl}?nx=${nx}&ny=${ny}`,
+      ];
+
+      const english = isEnglishText(userText);
+      const wantsPop = /강수확률|확률|비 올|rain|precip|pop/i.test(userText || "");
+
+      const ultraRaw = await fetchFirstOkJson(ultraCandidates);
+      const ultra = normalizeUltra(ultraRaw);
+      if (!ultra) {
+        return english
+          ? "Sorry, I couldn't fetch the weather right now."
+          : "죄송해요. 지금은 날씨 정보를 불러오지 못했어요.";
+      }
+
+      let pop = null;
+      if (wantsPop) {
+        const shortRaw = await fetchFirstOkJson(shortCandidates);
+        pop = extractPop(shortRaw);
+      }
+
+      const partsKR = [];
+      const partsEN = [];
+      if (ultra.temp !== null) { partsKR.push(`기온 ${Number(ultra.temp).toFixed(1)}℃`); partsEN.push(`Temp ${Number(ultra.temp).toFixed(1)}°C`); }
+      if (ultra.hum !== null) { partsKR.push(`습도 ${Number(ultra.hum).toFixed(0)}%`); partsEN.push(`Humidity ${Number(ultra.hum).toFixed(0)}%`); }
+      if (ultra.rain !== null) { partsKR.push(`1시간 강수 ${Number(ultra.rain).toFixed(1)}mm`); partsEN.push(`Rain(1h) ${Number(ultra.rain).toFixed(1)}mm`); }
+      if (pop !== null) { partsKR.push(`강수확률 ${Number(pop).toFixed(0)}%`); partsEN.push(`POP ${Number(pop).toFixed(0)}%`); }
+
+      const enParts = partsEN.join(", ");
+      const krParts = partsKR.join(", ");
+
+      if (english) {
+        return pickOne([
+          `${(loc.displayName || loc.name)} weather: ${enParts}.`,
+          `Current ${(loc.displayName || loc.name)}: ${enParts}.`,
+          `Weather in ${(loc.displayName || loc.name)}: ${enParts}.`
+        ]);
+      }
+      return pickOne([
+        `${loc.name} 날씨: ${krParts} 입니다.`,
+        `현재 ${loc.name} 기준 ${krParts} 입니다.`,
+        `지금 ${loc.name}의 기상 정보는 ${krParts} 입니다.`
+      ]);
+    }
+
+    // ================================
+    // ✅ Local Answer UX Helpers
+    // - Make local (TIME/FX/WEATHER) answers feel like AI responses
+    // - Show "Thinking..." for 10~15s before replying
+    // - Choose 1 of 3 response phrasings (KR/EN only)
+    // ================================
+    function pickOne(arr) {
+      if (!arr || !arr.length) return "";
+      return arr[Math.floor(Math.random() * arr.length)];
+    }
+    function sleep(ms) { return new Promise(res => setTimeout(res, ms)); }
+    async function localThinkingDelay(kind = "GEN") {
+      // ✅ Keep overall 10~15s, but allow subtle per-type variation within the same window
+      let min = 10000, max = 15000;
+      if (kind === "TIME") { min = 10000; max = 12000; }
+      else if (kind === "FX") { min = 11000; max = 14000; }
+      else if (kind === "WEATHER") { min = 12000; max = 15000; }
+      const ms = min + Math.floor(Math.random() * (max - min + 1));
+      await sleep(ms);
+    }
+
+    function startThinkingAnimation(loadingId) {
+      // ✅ AI-like typing indicator: Thinking. → Thinking.. → Thinking...
+      let dots = 1;
+      const tick = () => {
+        const msg = "Thinking" + ".".repeat(dots);
+        setChatBubbleById(loadingId, msg, false);
+        dots = (dots % 3) + 1;
+      };
+      tick();
+      const timer = setInterval(tick, 600);
+      return () => clearInterval(timer);
+    }
+
+    // --- helper: find earliest keyword position (for ordering multi-intent answers)
+    function getFirstIndex(haystack, needles) {
+      if (!haystack) return -1;
+      let best = -1;
+      for (const n of (needles || [])) {
+        if (!n) continue;
+        const i = haystack.indexOf(String(n).toLowerCase());
+        if (i !== -1 && (best === -1 || i < best)) best = i;
+      }
+      return best;
+    }
+
+
 
     async function sendQuestion() {
       const inp = document.getElementById("questionInput");
@@ -1006,19 +1780,79 @@
       const loadingId = "loading-" + Date.now();
       appendChat("assistant", "Thinking...", { id: loadingId });
 
+      const stopThinking = startThinkingAnimation(loadingId);
+
       try {
+        // ✅ 멀티 인텐트 처리: TIME / FX / WEATHER 를 동시에 감지해서 한 번에 응답
+        const lowerQ = q.toLowerCase();
+
+        // "X 말고" 형태는 해당 인텐트를 제외(예: "환율 말고 수원 날씨")
+        const excludeFX = /(?:환율|fx|exchange rate).{0,12}말고/.test(q) || /말고.{0,12}(?:환율|fx|exchange rate)/.test(q);
+        const excludeTIME = /(?:시간|time).{0,12}말고/.test(q) || /말고.{0,12}(?:시간|time)/.test(q);
+        const excludeWEATHER = /(?:날씨|weather|기온|습도|강수).{0,12}말고/.test(q) || /말고.{0,12}(?:날씨|weather|기온|습도|강수)/.test(q);
+
+        // 각 인텐트별 응답 생성(가능한 것만)
+        const parts = [];
+
+        // TIME
+        let timeAns = null;
+        if (!excludeTIME) {
+          timeAns = buildTimeAnswerIfAsked(q);
+          if (timeAns) parts.push({ kind: "TIME", pos: getFirstIndex(lowerQ, ["시간", "time"]), text: timeAns });
+        }
+
+        // FX
+        let fxAns = null;
+        if (!excludeFX) {
+          fxAns = await buildFxAnswerIfAsked(q);
+          if (fxAns) parts.push({ kind: "FX", pos: getFirstIndex(lowerQ, ["환율", "fx", "exchange rate", "달러", "usd", "엔", "jpy", "위안", "cny", "유로", "eur", "krw"]), text: fxAns });
+        }
+
+        // WEATHER
+        let weatherAns = null;
+        if (!excludeWEATHER) {
+          weatherAns = await buildWeatherAnswerIfAsked(q);
+          if (weatherAns) parts.push({ kind: "WEATHER", pos: getFirstIndex(lowerQ, ["날씨", "weather", "기온", "습도", "강수", "비", "temperature", "rain"]), text: weatherAns });
+        }
+
+        if (parts.length > 0) {
+          // 질문에 나온 순서대로 정렬(키워드가 없으면 뒤로)
+          parts.sort((a, b) => (a.pos === -1 ? 1 : a.pos) - (b.pos === -1 ? 1 : b.pos));
+
+          // 멀티일 때는 한 번에 보여주기 (줄바꿈)
+          const combined = parts.map(p => p.text).join("\n");
+
+          // 딜레이는 가장 "무거운" 종류 기준으로
+          const kindForDelay =
+            parts.some(p => p.kind === "WEATHER") ? "WEATHER" :
+              parts.some(p => p.kind === "FX") ? "FX" :
+                parts.some(p => p.kind === "TIME") ? "TIME" : "GEN";
+
+          await localThinkingDelay(kindForDelay);
+          stopThinking();
+          setChatBubbleById(loadingId, combined, false);
+          chatMessages.push({ role: "assistant", content: combined });
+          return;
+        }
+
+        // ✅ 3) 그 외 질문만 AI
+
         const { via, content } = await callAI(chatMessages);
+        stopThinking();
         setChatBubbleById(loadingId, content, false);
         chatMessages.push({ role: "assistant", content });
         console.log("AI answered via:", via);
+        try { await updateRagChip(); } catch (e) { }
       } catch (e) {
         console.error("AI Error:", e);
+        try { stopThinking(); } catch (_) { }
         setChatBubbleById(
           loadingId,
           "AI 호출 실패: " + e.message +
-          "\n(운영 권장: /api/ai 프록시로 Ollama에 붙이기. direct는 CORS에 막힐 수 있음)",
+          "\n(운영 권장: /api/chat(오케스트레이터) 또는 /api/ai 프록시로 붙이기. direct는 CORS에 막힐 수 있음)",
           true
         );
+        try { await updateRagChip(); } catch (e) { }
       }
     }
 

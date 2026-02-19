@@ -5,7 +5,7 @@ replicaCount: 2
 image:
   repository: 10.2.2.40:5000/library/ai-rag
   pullPolicy: Always
-  tag: "debug-fix9"
+  tag: "debug-fix10"
 
 imagePullSecrets:
   - name: harbor-secret

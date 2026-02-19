@@ -23,14 +23,14 @@ spec:
         pathType: Prefix
         backend:
           service:
-            name: ai-test
+            name: ai-rag
             port:
               number: 3000
       - path: /ai(/|$)(.*)
         pathType: Prefix
         backend:
           service:
-            name: ai-test
+            name: ai-rag
             port:
               number: 3000
       - path: /api/main/weather(/|$)(.*)

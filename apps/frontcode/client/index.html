@@ -1193,68 +1193,26 @@
         stream: false
       };
 
-      // ✅ 1순위: main 오케스트레이터 (/api/chat) - RAG + 실시간 컨텍스트 주입
-      try {
-        const res0 = await fetch("/api/chat", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload)
-        });
-        if (!res0.ok) throw new Error(`orch http ${res0.status}`);
-        const data0 = await res0.json();
-
-        const content0 =
-          data0?.message?.content ??
-          data0?.choices?.[0]?.message?.content ??
-          data0?.response ??
-          null;
-
-        if (!content0) throw new Error("orch response invalid");
-        window.__lastAiVia = "orch";
-        return { via: "orch", content: content0 };
-      } catch (e0) {
-        console.warn("AI orchestrator failed, fallback to proxy:", e0.message);
-      }
-
-      // ✅ 2순위: 같은 도메인 프록시(기존 v2 방식)
-      try {
-        const res = await fetch(AI_PROXY_ENDPOINT, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload)
-        });
-        if (!res.ok) throw new Error(`proxy http ${res.status}`);
-        const data = await res.json();
-
-        const content =
-          data?.message?.content ??
-          data?.choices?.[0]?.message?.content ??
-          data?.response ??
-          null;
-
-        if (!content) throw new Error("proxy response invalid");
-        window.__lastAiVia = "proxy";
-        return { via: "proxy", content };
-      } catch (e1) {
-        console.warn("AI proxy failed, fallback to direct:", e1.message);
-      }
-
-      // ✅ 3순위: Ollama 직접 호출(내부망/테스트용) - 브라우저 CORS에 막힐 수 있음
-      const res2 = await fetch(AI_DIRECT_ENDPOINT, {
+      // ✅ AI Proxy → Ingress(/api/ai) → ai-rag 서비스
+      // /api/chat(없는 경로), Direct(CORS 차단) 제거
+      const res = await fetch(AI_PROXY_ENDPOINT, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)
       });
-      if (!res2.ok) throw new Error(`direct http ${res2.status}`);
-      const data2 = await res2.json();
-      const content2 =
-        data2?.message?.content ??
-        data2?.choices?.[0]?.message?.content ??
-        data2?.response ??
+
+      if (!res.ok) throw new Error(`AI 서버 오류 (HTTP ${res.status})`);
+      const data = await res.json();
+
+      const content =
+        data?.message?.content ??
+        data?.choices?.[0]?.message?.content ??
+        data?.response ??
         null;
-      if (!content2) throw new Error("direct response invalid");
-      window.__lastAiVia = "direct";
-      return { via: "direct", content: content2 };
+
+      if (!content) throw new Error("AI 응답 형식 오류");
+      window.__lastAiVia = "proxy";
+      return { via: "proxy", content };
     }
 
 

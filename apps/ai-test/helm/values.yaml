@@ -7,7 +7,8 @@ image:
   pullPolicy: Always
   tag: "debug-fix6"
 
-imagePullSecrets: []
+imagePullSecrets:
+  - name: harbor-secret
 nameOverride: ""
 fullnameOverride: "ai-test"
 

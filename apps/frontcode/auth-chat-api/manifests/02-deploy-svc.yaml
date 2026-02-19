@@ -13,6 +13,8 @@ spec:
       labels:
         app: auth-chat-api
     spec:
+      imagePullSecrets:
+      - name: harbor-secret
       containers:
       - name: api
         image: 10.2.2.40:5000/library/auth-chat-api:latest

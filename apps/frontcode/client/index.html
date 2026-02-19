@@ -368,6 +368,13 @@
       cursor: pointer;
     }
 
+
+    .example-questions-spacer {
+      height: 48px;
+      margin-top: 10px;
+      margin-bottom: 4px;
+    }
+
     .example-questions {
       display: flex;
       flex-wrap: wrap;
@@ -697,6 +704,7 @@
                 placeholder="질문을 입력하세요 (예: 날씨, 미세먼지, 인프라, 쿠버, 전력 등)" autocomplete="off">
               <button class="send-button" id="sendButton">▲</button>
             </div>
+            <div class="example-questions-spacer"></div>
           </div>
 
           <div class="chat-topbar" id="chatTopbar"></div>
@@ -1459,7 +1467,7 @@ ${buildMultiZoneHintKR(target.country)}` : "";
       if (lower.includes("환율") || lower.includes("exchange rate") || lower.includes("fx")) return true;
 
       // 2) 통화 단어/코드가 포함된 경우만 FX
-      const hasCurrencyWord = /(달러|엔|위안|유로|중국)/.test(s);
+      const hasCurrencyWord = /(달러|엔|일본|위안|유로|중국)/.test(s);
       const hasCurrencyCode = /\b(usd|jpy|cny|eur|krw)\b/i.test(s);
       const hasPairCompact = /(usdkrw|jpykrw|cnykrw|eurkrw)/i.test(s);
 
@@ -1481,7 +1489,7 @@ ${buildMultiZoneHintKR(target.country)}` : "";
       if (m2) { base = m2[2].toUpperCase(); quote = m2[1].toUpperCase(); return { base, quote }; }
 
       // 단어 기반
-      if (/(엔|jpy)/i.test(s)) base = "JPY";
+      if (/(엔|엔화|jpy|일본)/i.test(s)) base = "JPY";
       if (/(위안|cny|중국)/i.test(s)) base = "CNY";
       if (/(유로|eur)/i.test(s)) base = "EUR";
       if (/(달러|usd)/i.test(s)) base = "USD";

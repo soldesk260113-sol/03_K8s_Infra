@@ -27,6 +27,10 @@ spec:
           protocol: TCP
         env:
           {{- toYaml .Values.env | nindent 10 }}
+        volumeMounts:
+        - name: knowledge-volume
+          mountPath: /app/knowledge.jsonl
+          subPath: knowledge.json
         livenessProbe:
           httpGet:
             path: /
@@ -35,3 +39,7 @@ spec:
           httpGet:
             path: /
             port: http
+      volumes:
+      - name: knowledge-volume
+        configMap:
+          name: ai-test-knowledge

@@ -1,6 +1,6 @@
 # Default values for frontcode.
 # This is a minimal values file since we are using raw manifests in templates.
-replicaCount: 2
+replicaCount: 3
 
 image:
   repository: 10.2.2.40:5000/library/web-v2-dashboard

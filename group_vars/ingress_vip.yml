@@ -7,6 +7,8 @@ haproxy_frontends:
     bind: "*:443"
     backend: ingress_https_backend
 
+keepalived_check_process: haproxy
+
 haproxy_backends:
   - name: ingress_http_backend
     balance: roundrobin

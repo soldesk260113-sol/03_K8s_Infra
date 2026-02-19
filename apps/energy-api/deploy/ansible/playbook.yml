@@ -1,4 +1,0 @@
-- hosts: api_nodes
-  become: true
-  roles:
-    - energy_api

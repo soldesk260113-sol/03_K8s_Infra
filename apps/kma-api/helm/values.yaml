@@ -4,6 +4,8 @@
 
 replicaCount: 3
 
+namespaceOverride: "production"
+
 autoscaling:
   enabled: true
   minReplicas: 3

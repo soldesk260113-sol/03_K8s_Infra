@@ -1,0 +1,26 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: authchat-ingress
+  namespace: production
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: cafekec.shop
+    http:
+      paths:
+      - path: /api/auth
+        pathType: Prefix
+        backend:
+          service:
+            name: auth-chat-api
+            port:
+              number: 80
+      - path: /api/chat
+        pathType: Prefix
+        backend:
+          service:
+            name: auth-chat-api
+            port:
+              number: 80
+

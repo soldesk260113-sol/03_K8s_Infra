@@ -1,11 +1,11 @@
 # Default values for frontcode.
 # This is a minimal values file since we are using raw manifests in templates.
-replicaCount: 3
+replicaCount: 2
 
 image:
-  repository: 10.2.2.40:5000/library/frontcode
+  repository: 10.2.2.40:5000/library/web-v2-dashboard
   pullPolicy: Always
-  tag: "latest-ai-v2"
+  tag: "latest"
 
 service:
   type: ClusterIP

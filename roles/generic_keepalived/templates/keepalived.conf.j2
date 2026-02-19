@@ -2,6 +2,14 @@ global_defs {
   router_id {{ keepalived_router_id | default(inventory_hostname) }}
 }
 
+{% if keepalived_check_process is defined %}
+vrrp_script chk_{{ keepalived_check_process }} {
+  script "pidof {{ keepalived_check_process }}"
+  interval 1
+  weight -20
+}
+{% endif %}
+
 vrrp_instance {{ vrrp.name }} {
   state {{ vrrp.state | default('BACKUP') }}
   interface {{ vrrp.interface }}
@@ -17,4 +25,10 @@ vrrp_instance {{ vrrp.name }} {
   virtual_ipaddress {
     {{ vrrp.vip }}
   }
+
+{% if keepalived_check_process is defined %}
+  track_script {
+    chk_{{ keepalived_check_process }}
+  }
+{% endif %}
 }

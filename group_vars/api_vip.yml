@@ -4,6 +4,8 @@ haproxy_frontends:
     bind: "*:6443"
     backend: k8s_api_backend
 
+keepalived_check_process: haproxy
+
 haproxy_backends:
   - name: k8s_api_backend
     balance: roundrobin

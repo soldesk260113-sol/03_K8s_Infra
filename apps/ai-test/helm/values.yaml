@@ -5,7 +5,7 @@ replicaCount: 2
 image:
   repository: 10.2.2.40:5000/library/aitest
   pullPolicy: Always
-  tag: "debug-fix7"
+  tag: "debug-fix8"
 
 imagePullSecrets:
   - name: harbor-secret

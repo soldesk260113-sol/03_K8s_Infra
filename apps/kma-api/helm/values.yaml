@@ -89,8 +89,11 @@ affinity:
           - weather
 
 env:
-  NODE_ENV: production
-  # Database Configuration
+  # ===== KMA =====
+  KMA_AUTHKEY: "MmNnsQppQqGjZ7EKaaKhgQ"
+  AIRKOREA_SERVICE_KEY: "93f2e3191276074224c438872e7cc3a95b6bcff3adbf538ceb8dba2938a233d5"
+
+  # ===== Database (PostgreSQL) =====
   DB_HOST: "10.2.2.254"
   DB_PORT: "5432"
   DB_NAME: "appdb"
@@ -98,19 +101,17 @@ env:
   DB_USER: "svc_api"
   DB_PASSWORD: "CHANGE_ME"
   DB_SSLMODE: "disable"
-  
-  # Redis Configuration (Optional, based on code)
-  REDIS_HOST: "redis-cache" 
+
+  # ===== Redis (Cache) =====
+  REDIS_HOST: "redis-cache"
   REDIS_PORT: "6379"
   REDIS_PREFIX: "weather"
   REDIS_TTL_ULTRA_SECONDS: "600"
   REDIS_TTL_SHORT_SECONDS: "3600"
-  
-  # API Keys
-  KMA_AUTHKEY: "MmNnsQppQqGjZ7EKaaKhgQ"
-  AIRKOREA_SERVICE_KEY: "93f2e3191276074224c438872e7cc3a95b6bcff3adbf538ceb8dba2938a233d5"
+  REDIS_PREFIX_DUST: "dust"
+  REDIS_TTL_DUST_SECONDS: "1800"
 
-  # Timezone
+  # ===== Timezone =====
   TZ: "Asia/Seoul"
 
 livenessProbe:

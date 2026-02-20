@@ -47,6 +47,8 @@
       background: var(--bg-color);
       color: var(--text-main);
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      margin: 0;
+      overflow: hidden;
     }
 
     /* --- Login View (✅ 반쪽 화면에서도 main처럼 정상적으로) --- */
@@ -178,7 +180,8 @@
 
     /* --- Dashboard Layout --- */
     #dashboardView {
-      min-height: 100vh;
+      height: 100vh;
+      overflow: hidden;
       display: flex;
       flex-direction: column;
     }
@@ -189,6 +192,13 @@
     }
 
     .page {
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .page>.wrap {
       flex: 1;
       min-height: 0;
       display: flex;
@@ -207,6 +217,7 @@
     .bottom-area {
       margin-top: auto;
       padding: 8px 0 18px 0;
+      flex-shrink: 0;
     }
 
     /* ========================= TOP BAR ========================= */
@@ -458,6 +469,10 @@
       flex-direction: column;
       gap: 10px;
       margin-top: 0px;
+      flex: 1;
+      min-height: 0;
+
+      overflow: hidden;
     }
 
     .response-area.active {
@@ -465,9 +480,11 @@
     }
 
     .chat-history {
-      max-height: var(--chat-height);
-      overflow: auto;
+      overflow-y: auto;
+      overflow-x: hidden;
       padding-right: 6px;
+      flex: 1;
+      min-height: 0;
     }
 
     .chat-bubble {
@@ -626,6 +643,12 @@
       <div class="login-hero">
         <h1>AI + API 기반<br>통합 대시보드</h1>
         <p>Kubernetes 기반 인프라 관제 및 실시간<br>날씨, 강수, 미세먼지 정보를 확인하세요.</p>
+        <div style="margin-top:20px;">
+          <span
+            style="background:rgba(255,255,255,0.2); padding:5px 12px; border-radius:20px; font-size:12px; font-weight:900;">
+            🚀 v7.4 + Ollama
+          </span>
+        </div>
       </div>
 
       <div class="login-panel">
@@ -759,11 +782,10 @@
     // ==========================
     const AI_MODEL = "llama3.1:latest";
 
-    // 1순위: 같은 도메인 프록시(권장)
+    // ✅ 운영 권장: 브라우저는 SAME-ORIGIN 프록시만 호출 (CORS/혼합콘텐츠 방지)
+    // - Ingress에서 /api/ai → auth-chat-api(프록시) 로 라우팅되도록 구성
+    // - auth-chat-api가 내부에서 Ollama(/api/chat)로 프록시
     const AI_PROXY_ENDPOINT = "/api/ai/api/chat";
-
-    // 2순위: Ollama 직접 호출(내부망/테스트용) - 브라우저 CORS에 막힐 수 있음
-    const AI_DIRECT_ENDPOINT = "http://10.2.2.40:11434/api/chat";
 
     const WIDGETS = {
       weatherUrl: "/api/weather/weather/ultra",
@@ -1186,23 +1208,45 @@
       scrollChatToBottom();
     }
 
-    async function callAI(messages) {
-      const payload = {
-        model: AI_MODEL,
-        messages,
-        stream: false
-      };
+    // ================================
+    // ✅ AI Caller (운영 안정형)
+    // - /api/ai 단일 경로 고정 (same-origin 프록시)
+    // ================================
 
-      // ✅ AI Proxy → Ingress(/api/ai) → ai-rag 서비스
-      // /api/chat(없는 경로), Direct(CORS 차단) 제거
+    async function callAI(messages, signal) {
+      const payload = { model: AI_MODEL, messages, stream: false };
+
+      // ✅ 단일 경로 고정: same-origin 프록시만 사용
+      // - direct 제거(HTTPS 혼합콘텐츠/CORS 방지)
+      const attempts = [];
       const res = await fetch(AI_PROXY_ENDPOINT, {
         method: "POST",
+        signal,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)
       });
+      attempts.push({ via: "proxy", status: res.status });
 
-      if (!res.ok) throw new Error(`AI 서버 오류 (HTTP ${res.status})`);
-      const data = await res.json();
+      const raw = await res.text();
+
+      if (!res.ok) {
+        const err = new Error(`proxy http ${res.status}`);
+        err.attempts = attempts;
+        err.raw = raw.slice(0, 300);
+        throw err;
+      }
+
+      // JSON이 아니라 HTML(<!doctype ...)이 오면 여기서 잡힘
+      let data;
+      try {
+        data = JSON.parse(raw);
+      } catch (e) {
+        const head = raw.slice(0, 120).replace(/\s+/g, " ");
+        const err = new Error(`proxy returned NON-JSON (likely HTML/redirect). head="${head}"`);
+        err.attempts = attempts;
+        err.raw = raw.slice(0, 600);
+        throw err;
+      }
 
       const content =
         data?.message?.content ??
@@ -1210,10 +1254,33 @@
         data?.response ??
         null;
 
-      if (!content) throw new Error("AI 응답 형식 오류");
+      if (!content) {
+        const err = new Error("proxy response JSON but missing content");
+        err.attempts = attempts;
+        err.raw = raw.slice(0, 600);
+        throw err;
+      }
+
       window.__lastAiVia = "proxy";
-      return { via: "proxy", content };
+      return { via: "proxy", content, attempts };
     }
+
+    // ✅ (진단용) /api/ai 헬스체크: 브라우저 콘솔에서 team2AiPing() 실행
+    async function team2AiPing() {
+      try {
+        const r = await fetch(AI_PROXY_ENDPOINT, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ model: AI_MODEL, messages: [{ role: "user", content: "ping" }], stream: false })
+        });
+        console.log("[team2AiPing] status:", r.status);
+        const t = await r.text();
+        console.log("[team2AiPing] body:", t.slice(0, 500));
+      } catch (e) {
+        console.error("[team2AiPing] failed:", e);
+      }
+    }
+
 
 
     // ================================
@@ -1601,10 +1668,171 @@ ${buildMultiZoneHintKR(target.country)}` : "";
       return pop;
     }
 
+
+    // ✅ 자연어 날짜(내일/모레/토요일 등) 파싱 → 단기/중기 자동 선택용
+    function addDays(d, n) {
+      const x = new Date(d);
+      x.setDate(x.getDate() + n);
+      return x;
+    }
+    function yyyymmdd(d) {
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, "0");
+      const da = String(d.getDate()).padStart(2, "0");
+      return `${y}${m}${da}`;
+    }
+    function daysFromToday(target, now = new Date()) {
+      const a = new Date(target.getFullYear(), target.getMonth(), target.getDate());
+      const b = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      return Math.round((a - b) / (24 * 60 * 60 * 1000));
+    }
+    function getTargetDateFromQuestion(q, now = new Date()) {
+      const t = (q || "").toLowerCase();
+
+      if (/(오늘|지금|현재)/.test(t)) return { date: new Date(now), labelKR: "오늘", labelEN: "today" };
+      if (/내일/.test(t)) return { date: addDays(now, 1), labelKR: "내일", labelEN: "tomorrow" };
+      if (/모레/.test(t)) return { date: addDays(now, 2), labelKR: "모레", labelEN: "the day after tomorrow" };
+      if (/글피/.test(t)) return { date: addDays(now, 3), labelKR: "글피", labelEN: "in 3 days" };
+
+      const dowMap = {
+        "일": 0, "일요일": 0,
+        "월": 1, "월요일": 1,
+        "화": 2, "화요일": 2,
+        "수": 3, "수요일": 3,
+        "목": 4, "목요일": 4,
+        "금": 5, "금요일": 5,
+        "토": 6, "토요일": 6,
+      };
+      const m = t.match(/(이번주|다음주)?\s*(일요일|월요일|화요일|수요일|목요일|금요일|토요일|일|월|화|수|목|금|토)/);
+      if (m) {
+        const weekWord = m[1] || "이번주";
+        const dowWord = m[2];
+        const targetDow = dowMap[dowWord];
+        if (targetDow != null) {
+          const baseDow = now.getDay();
+          let delta = (targetDow - baseDow + 7) % 7;
+          if (delta === 0) delta = 7; // 같은 요일이면 다음주로
+          if (weekWord === "다음주") delta += 7;
+          const d = addDays(now, delta);
+          return { date: d, labelKR: `${weekWord} ${dowWord}`.trim(), labelEN: `${weekWord === "다음주" ? "next" : "this"} ${dowWord}` };
+        }
+      }
+      return null;
+    }
+
+    function pickBestForecastItem(items, targetDateStr) {
+      if (!Array.isArray(items) || !items.length) return null;
+      const filtered = items.filter(it => String(it.fcstDate || it.date || "") === targetDateStr);
+      const pool = filtered.length ? filtered : items;
+      // 12시 근처(1200, 1500, 0900 우선)
+      const preferred = ["1200", "1500", "0900", "1800", "0600", "0000"];
+      for (const pt of preferred) {
+        const hit = pool.find(it => String(it.fcstTime || it.time || "") === pt);
+        if (hit) return hit;
+      }
+      return pool[0];
+    }
+
+    // 단기예보 JSON → 특정 날짜의 TMP/POP/REH/SKY 요약
+    function summarizeShortForDate(raw, targetDate) {
+      if (!raw || typeof raw !== "object") return null;
+      const target = yyyymmdd(targetDate);
+
+      // 1) KMA 스타일: items = [{fcstDate, fcstTime, category, fcstValue}, ...]
+      if (Array.isArray(raw.items)) {
+        const byTime = {};
+        for (const it of raw.items) {
+          if (String(it.fcstDate) !== target) continue;
+          const time = String(it.fcstTime || "");
+          if (!byTime[time]) byTime[time] = {};
+          const cat = String(it.category || "").toUpperCase();
+          byTime[time][cat] = it.fcstValue ?? it.value;
+        }
+        const times = Object.keys(byTime);
+        if (!times.length) return null;
+
+        // 12시 근처 선택
+        const preferred = ["1200", "1500", "0900", "1800", "0600", "0000"];
+        let bestTime = times[0];
+        for (const pt of preferred) {
+          if (byTime[pt]) { bestTime = pt; break; }
+        }
+        const slot = byTime[bestTime] || {};
+        const temp = safeNum(slot.TMP ?? slot.T3H ?? slot.T1H);
+        const hum = safeNum(slot.REH);
+        const pop = safeNum(slot.POP);
+        const sky = safeNum(slot.SKY);
+        const pty = safeNum(slot.PTY);
+        return { when: bestTime, temp, hum, pop, sky, pty };
+      }
+
+      // 2) hourly 배열 형태: [{date:"YYYYMMDD", time:"HHMM", POP:.., TMP:..}, ...]
+      if (Array.isArray(raw.hourly)) {
+        const normalized = raw.hourly.map(h => ({
+          fcstDate: String(h.fcstDate ?? h.date ?? ""),
+          fcstTime: String(h.fcstTime ?? h.time ?? ""),
+          TMP: h.TMP ?? h.tmp ?? h.temp ?? h.temperature,
+          POP: h.POP ?? h.pop,
+          REH: h.REH ?? h.reh ?? h.humidity,
+          SKY: h.SKY ?? h.sky,
+          PTY: h.PTY ?? h.pty
+        }));
+        const best = pickBestForecastItem(normalized, target);
+        if (!best) return null;
+        return {
+          when: best.fcstTime,
+          temp: safeNum(best.TMP),
+          hum: safeNum(best.REH),
+          pop: safeNum(best.POP),
+          sky: safeNum(best.SKY),
+          pty: safeNum(best.PTY),
+        };
+      }
+
+      return null;
+    }
+
+    function skyTextKR(sky, pty) {
+      // PTY(강수형태) 우선
+      const p = safeNum(pty);
+      if (p === 1) return "비";
+      if (p === 2) return "비/눈";
+      if (p === 3) return "눈";
+      if (p === 4) return "소나기";
+      const s = safeNum(sky);
+      if (s === 1) return "맑음";
+      if (s === 3) return "구름많음";
+      if (s === 4) return "흐림";
+      return null;
+    }
+
+    // 중기예보(육상/기온) 응답에서 D+N(3~10) 값 뽑기
+    function summarizeMidForDay(midLand, midTemp, dayN) {
+      // dayN: 3~10
+      const n = Math.min(10, Math.max(3, dayN));
+      const suf = String(n);
+      const wfAm = midLand?.[`wf${suf}Am`] ?? midLand?.[`wf${suf}am`] ?? midLand?.[`wf${suf}AM`];
+      const wfPm = midLand?.[`wf${suf}Pm`] ?? midLand?.[`wf${suf}pm`] ?? midLand?.[`wf${suf}PM`];
+      const rnAm = safeNum(midLand?.[`rnSt${suf}Am`] ?? midLand?.[`rnSt${suf}am`]);
+      const rnPm = safeNum(midLand?.[`rnSt${suf}Pm`] ?? midLand?.[`rnSt${suf}pm`]);
+      const taMin = safeNum(midTemp?.[`taMin${suf}`] ?? midTemp?.[`tamin${suf}`]);
+      const taMax = safeNum(midTemp?.[`taMax${suf}`] ?? midTemp?.[`tamax${suf}`]);
+      const wf = wfAm || wfPm || midLand?.[`wf${suf}`] || null;
+
+      // 어떤 키도 없으면 null
+      if (wf == null && rnAm == null && rnPm == null && taMin == null && taMax == null) return null;
+
+      return { wfAm, wfPm, wf, rnAm, rnPm, taMin, taMax };
+    }
+
     async function buildWeatherAnswerIfAsked(userText) {
       if (!isWeatherQuestion(userText)) return null;
       const lower = (userText || "").toLowerCase();
 
+
+      // ✅ 날씨/기상 '정보 조회'가 아니라 코디/활동/추천류 질문이면 AI로 넘깁니다
+      const RECO_HINTS = ["추천", "코디", "옷", "옷차림", "룩", "플레이리스트", "음악", "활동", "가이드", "일정", "뭐할까", "맛집", "데이트"];
+      if (RECO_HINTS.some(k => lower.includes(k))) return null;
       // ✅ 한국(대한민국) 이외 지역 날씨 요청은 차단
       const FOREIGN_WEATHER_KEYWORDS = [
         "tokyo", "osaka", "kyoto", "nagoya", "sapporo", "fukuoka", "japan", "jp",
@@ -1619,13 +1847,14 @@ ${buildMultiZoneHintKR(target.country)}` : "";
         "태국", "방콕", "싱가포르", "베트남", "하노이", "필리핀", "마닐라", "호주", "시드니"
       ];
       if (FOREIGN_WEATHER_KEYWORDS.some(k => lower.includes(k))) {
-        return null; // AI가 처리하도록
+        return "현재는 대한민국 지역 날씨만 지원합니다.";
       }
 
-      const loc = detectLocationFromText(userText);
-      // 테이블/권역 매칭 실패 시(기본값으로 서울을 찍는 대신) 안내
+      let loc = detectLocationFromText(userText);
+
+      // ✅ 지역 언급이 없거나 매칭 실패면 서울로 고정 (GPS 없음)
       if (!loc || loc.matchedBy === "default") {
-        return null; // 지역 미인식 → AI가 처리하도록
+        loc = { name: "서울", nx: 60, ny: 127, displayName: "서울", matchedBy: "fallback-seoul" };
       }
 
       const { nx, ny } = loc;
@@ -1644,6 +1873,111 @@ ${buildMultiZoneHintKR(target.country)}` : "";
 
       const english = isEnglishText(userText);
       const wantsPop = /강수확률|확률|비 올|rain|precip|pop/i.test(userText || "");
+
+      // ✅ 내일/모레/토요일 등 '미래 날짜' 질의면 단기/중기 예보를 우선 사용
+      const dateInfo = getTargetDateFromQuestion(userText, new Date());
+      if (dateInfo) {
+        const dday = daysFromToday(dateInfo.date, new Date());
+
+        // --- D+1~3 : 단기예보(short)에서 날짜별 요약 ---
+        if (dday >= 1 && dday <= 3) {
+          try {
+            const shortRawAll = await fetchFirstOkJson(shortCandidates);
+            const s = summarizeShortForDate(shortRawAll, dateInfo.date);
+            if (s) {
+              const partsKR2 = [];
+              const partsEN2 = [];
+              const skyKR = skyTextKR(s.sky, s.pty);
+
+              if (s.temp !== null) { partsKR2.push(`기온 ${Number(s.temp).toFixed(1)}℃`); partsEN2.push(`Temp ${Number(s.temp).toFixed(1)}°C`); }
+              if (s.hum !== null) { partsKR2.push(`습도 ${Number(s.hum).toFixed(0)}%`); partsEN2.push(`Humidity ${Number(s.hum).toFixed(0)}%`); }
+              if (s.pop !== null) { partsKR2.push(`강수확률 ${Number(s.pop).toFixed(0)}%`); partsEN2.push(`POP ${Number(s.pop).toFixed(0)}%`); }
+              if (skyKR) { partsKR2.push(`${skyKR}`); }
+
+              const enParts2 = partsEN2.join(", ");
+              const krParts2 = partsKR2.join(", ");
+
+              if (english) {
+                return `${(loc.displayName || loc.name)} ${dateInfo.labelEN} forecast: ${enParts2}.`;
+              }
+              return `${loc.name} ${dateInfo.labelKR} 날씨: ${krParts2} 입니다.`;
+            }
+          } catch (e) {
+            // 단기 파싱 실패 시 아래 ultra로 fallback
+          }
+        }
+
+        // --- D+4 이상 : 중기(육상+기온) 시도 ---
+        if (dday >= 4) {
+          const midLandCandidates = [
+            `${API_BASE}/api/weather/weather/mid-land`,
+            `${API_BASE}/api/weather/mid-land`,
+            `${API_BASE}/api/weather/mid/land`,
+          ];
+          const midTempCandidates = [
+            `${API_BASE}/api/weather/weather/mid-temp`,
+            `${API_BASE}/api/weather/mid-temp`,
+            `${API_BASE}/api/weather/mid/temp`,
+          ];
+
+          try {
+            const [midLandRaw, midTempRaw] = await Promise.all([
+              fetchFirstOkJson(midLandCandidates),
+              fetchFirstOkJson(midTempCandidates),
+            ]);
+
+            // 일부 구현은 {data:{...}} / {item:{...}} 형태일 수 있어 1단계 풀기
+            const midLand = midLandRaw?.data ?? midLandRaw?.item ?? midLandRaw;
+            const midTemp = midTempRaw?.data ?? midTempRaw?.item ?? midTempRaw;
+
+            const dayN = Math.min(10, dday); // 4~10
+            const msum = summarizeMidForDay(midLand, midTemp, dayN);
+            if (msum) {
+              const partsKR3 = [];
+              const partsEN3 = [];
+
+              // 기온
+              if (msum.taMin !== null && msum.taMax !== null) {
+                partsKR3.push(`기온 ${msum.taMin}~${msum.taMax}℃`);
+                partsEN3.push(`Temp ${msum.taMin}~${msum.taMax}°C`);
+              } else if (msum.taMax !== null) {
+                partsKR3.push(`기온 ${msum.taMax}℃`);
+                partsEN3.push(`Temp ${msum.taMax}°C`);
+              }
+
+              // 육상(오전/오후)
+              const wfKR = msum.wfAm || msum.wfPm || msum.wf;
+              if (wfKR) {
+                if (msum.wfAm && msum.wfPm) {
+                  partsKR3.push(`오전 ${msum.wfAm} / 오후 ${msum.wfPm}`);
+                } else {
+                  partsKR3.push(String(wfKR));
+                }
+                // EN은 간단히 동일 텍스트(한국어 유지 가능) 대신 라벨만 영어로
+                partsEN3.push(`Sky ${String(wfKR)}`);
+              }
+
+              // 강수확률
+              if (msum.rnAm !== null || msum.rnPm !== null) {
+                const am = (msum.rnAm !== null) ? `${msum.rnAm}%` : "—";
+                const pm = (msum.rnPm !== null) ? `${msum.rnPm}%` : "—";
+                partsKR3.push(`강수확률(오전/오후) ${am}/${pm}`);
+                partsEN3.push(`POP(AM/PM) ${am}/${pm}`);
+              }
+
+              const krParts3 = partsKR3.join(", ");
+              const enParts3 = partsEN3.join(", ");
+
+              if (english) {
+                return `${(loc.displayName || loc.name)} ${dateInfo.labelEN} outlook: ${enParts3}.`;
+              }
+              return `${loc.name} ${dateInfo.labelKR} 날씨: ${krParts3} 입니다.`;
+            }
+          } catch (e) {
+            // 중기 실패 시 ultra fallback
+          }
+        }
+      }
 
       const ultraRaw = await fetchFirstOkJson(ultraCandidates);
       const ultra = normalizeUltra(ultraRaw);
@@ -1695,11 +2029,15 @@ ${buildMultiZoneHintKR(target.country)}` : "";
     }
     function sleep(ms) { return new Promise(res => setTimeout(res, ms)); }
     async function localThinkingDelay(kind = "GEN") {
-      // ✅ Keep overall 10~15s, but allow subtle per-type variation within the same window
-      let min = 10000, max = 15000;
-      if (kind === "TIME") { min = 10000; max = 12000; }
-      else if (kind === "FX") { min = 11000; max = 14000; }
-      else if (kind === "WEATHER") { min = 12000; max = 15000; }
+      // ✅ Local 답변(시간/환율/날씨)도 '생각 중' 연출은 유지하되, 기존의 절반 수준으로 단축
+      // - GEN: 5~8s
+      // - TIME: 5~6s
+      // - FX: 6~7s
+      // - WEATHER: 6~8s
+      let min = 5000, max = 8000;
+      if (kind === "TIME") { min = 5000; max = 6000; }
+      else if (kind === "FX") { min = 6000; max = 7000; }
+      else if (kind === "WEATHER") { min = 6000; max = 8000; }
       const ms = min + Math.floor(Math.random() * (max - min + 1));
       await sleep(ms);
     }
@@ -1729,23 +2067,36 @@ ${buildMultiZoneHintKR(target.country)}` : "";
       return best;
     }
 
-
-
     async function sendQuestion() {
+      // 중복 전송 방지
+      if (window.__aiInFlight) return;
+
       const inp = document.getElementById("questionInput");
-      const q = inp.value.trim();
+      const sendBtn = document.getElementById("sendButton");
+
+      const q = (inp?.value || "").trim();
       if (!q) return;
 
       openChatUI();
 
+      // UI 잠금
+      window.__aiInFlight = true;
+      try { if (sendBtn) sendBtn.disabled = true; } catch (_) { }
+      // ✅ 입력창은 계속 타이핑 가능(전송만 잠금)
+      // try{ if (inp) inp.disabled = true; } catch(_){}
+
+      // 이전 요청 취소 후 새 요청 생성
+      try {
+        if (window.__aiAbortController) window.__aiAbortController.abort();
+      } catch (_) { }
+      window.__aiAbortController = new AbortController();
+
       appendChat("user", q);
       inp.value = "";
-
       chatMessages.push({ role: "user", content: q });
 
       const loadingId = "loading-" + Date.now();
       appendChat("assistant", "Thinking...", { id: loadingId });
-
       const stopThinking = startThinkingAnimation(loadingId);
 
       try {
@@ -1774,11 +2125,11 @@ ${buildMultiZoneHintKR(target.country)}` : "";
           if (fxAns) parts.push({ kind: "FX", pos: getFirstIndex(lowerQ, ["환율", "fx", "exchange rate", "달러", "usd", "엔", "jpy", "위안", "cny", "유로", "eur", "krw"]), text: fxAns });
         }
 
-        // WEATHER → 로컬 응답 대신 AI 컨텍스트로 활용
+        // WEATHER
         let weatherAns = null;
         if (!excludeWEATHER) {
           weatherAns = await buildWeatherAnswerIfAsked(q);
-          // ❌ parts.push 제거 → AI(RAG)에게 컨텍스트로 전달
+          if (weatherAns) parts.push({ kind: "WEATHER", pos: getFirstIndex(lowerQ, ["날씨", "weather", "기온", "습도", "강수", "비", "temperature", "rain"]), text: weatherAns });
         }
 
         if (parts.length > 0) {
@@ -1801,36 +2152,46 @@ ${buildMultiZoneHintKR(target.country)}` : "";
           return;
         }
 
-        // ✅ 3) AI(RAG) 호출 - 날씨 데이터 컨텍스트 주입
-        const aiMessages = [...chatMessages];
-        if (weatherAns) {
-          // 날씨 API 데이터를 user 메시지 앞에 컨텍스트로 주입
-          aiMessages.push({
-            role: "user",
-            content: `[실시간 날씨 데이터]\n${weatherAns}\n\n위 날씨 데이터를 참고해서 다음 질문에 답해줘: ${q}`
-          });
-        } else {
-          aiMessages.push({ role: "user", content: q });
-        }
+        // ✅ 그 외 질문만 AI (운영: 프록시 단일 경로)
+        const { via, content, attempts } = await callAI(chatMessages, window.__aiAbortController.signal);
 
-        const { via, content } = await callAI(aiMessages);
         stopThinking();
         setChatBubbleById(loadingId, content, false);
         chatMessages.push({ role: "assistant", content });
-        console.log("AI answered via:", via);
+        console.log("AI answered via:", via, attempts || []);
         try { await updateRagChip(); } catch (e) { }
       } catch (e) {
         console.error("AI Error:", e);
+
+        // attempts가 있으면 화면에 원인 힌트 표시
+        let hint = "";
+        try {
+          const at = e?.attempts || [];
+          if (Array.isArray(at) && at.length) {
+            hint = "\n[진단] " + at.map(x => {
+              if (x.status) return `${x.via}:${x.status}`;
+              if (x.error) return `${x.via}:${x.error}`;
+              return `${x.via}:fail`;
+            }).join(" | ");
+          }
+        } catch (_) { }
+
         try { stopThinking(); } catch (_) { }
         setChatBubbleById(
           loadingId,
-          "AI 호출 실패: " + e.message +
-          "\n(운영 권장: /api/chat(오케스트레이터) 또는 /api/ai 프록시로 붙이기. direct는 CORS에 막힐 수 있음)",
+          "AI 호출 실패: " + (e?.message || String(e)) +
+          hint +
+          "\n(운영 권장: 브라우저 direct 호출은 끄고(/CORS), /api/ai 프록시 단일 경로로 고정)",
           true
         );
         try { await updateRagChip(); } catch (e) { }
+      } finally {
+        window.__aiInFlight = false;
+        try { if (sendBtn) sendBtn.disabled = false; } catch (_) { }
+        try { if (inp) inp.disabled = false; } catch (_) { }
       }
     }
+
 
     document.getElementById("sendButton").onclick = sendQuestion;
     document.getElementById("questionInput").addEventListener("keypress", (e) => {

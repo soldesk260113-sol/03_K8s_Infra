@@ -20,6 +20,15 @@ spec:
         image: 10.2.2.40:5000/library/auth-chat-api:latest
         ports:
         - containerPort: 8000
+        affinity:
+          nodeAffinity:
+            requiredDuringSchedulingIgnoredDuringExecution:
+              nodeSelectorTerms:
+              - matchExpressions:
+                - key: kubernetes.io/hostname
+                  operator: NotIn
+                  values:
+                  - k8s-workernode6
         envFrom:
         - secretRef:
             name: authchat-secret

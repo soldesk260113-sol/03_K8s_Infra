@@ -20,15 +20,15 @@ spec:
         image: redis:7.0-alpine
         ports:
         - containerPort: 6379
-        affinity:
-          nodeAffinity:
-            requiredDuringSchedulingIgnoredDuringExecution:
-              nodeSelectorTerms:
-              - matchExpressions:
-                - key: kubernetes.io/hostname
-                  operator: NotIn
-                  values:
-                  - k8s-workernode6
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: kubernetes.io/hostname
+                operator: NotIn
+                values:
+                - k8s-workernode6
 ---
 apiVersion: v1
 kind: Service

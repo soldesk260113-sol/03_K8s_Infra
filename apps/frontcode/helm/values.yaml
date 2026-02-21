@@ -5,7 +5,7 @@ replicaCount: 3
 image:
   repository: 10.2.2.40:5000/library/web-v2-dashboard
   pullPolicy: Always
-  tag: "latest-7"
+  tag: "latest-8"
 
 service:
   type: ClusterIP

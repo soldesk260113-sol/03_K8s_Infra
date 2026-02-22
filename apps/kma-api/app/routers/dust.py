@@ -149,10 +149,11 @@ async def seoul(
             "pm10": pm10,
             "pm25": pm25,
         }
-        # 실패 응답은 캐시 안 함(원하면 짧게 캐시도 가능)
+        # ⚠️ 에러 응답도 60초간 캐싱하여 429 차단 방어
+        _cache_set(key, result, 60)
         result["source"] = "api"
         result["cache_key"] = key
-        result["ttl"] = None
+        result["ttl"] = 60
         result["took_ms"] = round((time.time() - t0) * 1000, 1)
         return result
 
@@ -209,9 +210,11 @@ async def seoul_pm10(
             "station": station,
             "pm10": result_raw,
         }
+        # ⚠️ 에러 응답도 60초간 캐싱
+        _cache_set(key, result, 60)
         result["source"] = "api"
         result["cache_key"] = key
-        result["ttl"] = None
+        result["ttl"] = 60
         result["took_ms"] = round((time.time() - t0) * 1000, 1)
         return result
 
@@ -261,9 +264,11 @@ async def seoul_pm25(
             "station": station,
             "pm25": result_raw,
         }
+        # ⚠️ 에러 응답도 60초간 캐싱
+        _cache_set(key, result, 60)
         result["source"] = "api"
         result["cache_key"] = key
-        result["ttl"] = None
+        result["ttl"] = 60
         result["took_ms"] = round((time.time() - t0) * 1000, 1)
         return result
 

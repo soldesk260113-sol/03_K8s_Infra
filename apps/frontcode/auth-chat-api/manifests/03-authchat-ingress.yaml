@@ -3,6 +3,8 @@ kind: Ingress
 metadata:
   name: authchat-ingress
   namespace: production
+  annotations:
+    haproxy.router.openshift.io/timeout: 300s
 spec:
   ingressClassName: nginx
   rules:

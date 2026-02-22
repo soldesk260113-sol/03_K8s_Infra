@@ -4,6 +4,7 @@ metadata:
   name: {{ .Values.fullnameOverride }}
   annotations:
     {{- toYaml .Values.ingress.annotations | nindent 4 }}
+    haproxy.router.openshift.io/timeout: 300s
 spec:
   ingressClassName: {{ .Values.ingress.className }}
   rules:

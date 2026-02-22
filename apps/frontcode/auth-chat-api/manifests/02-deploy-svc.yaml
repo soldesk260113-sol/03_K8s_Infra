@@ -16,10 +16,20 @@ spec:
       imagePullSecrets:
       - name: harbor-secret
       containers:
-      - name: api
-        image: 10.2.2.40:5000/library/auth-chat-api:latest
+        image: 10.2.2.40:5000/library/ai-rag:latest
         ports:
-        - containerPort: 8000
+        - containerPort: 3000
+        env:
+        - name: OLLAMA_HOST_PRIMARY
+          value: "http://139.150.91.194:11434"
+        - name: OLLAMA_HOST_SECONDARY
+          value: "http://10.2.2.40:11434"
+        - name: DEFAULT_MODEL
+          value: "llama3.1:70b"
+        - name: KMA_API_URL
+          value: "http://kma-api:8080/weather/short"
+        - name: ENERGY_API_URL
+          value: "http://energy-api:8000/kpx/now"
         envFrom:
         - secretRef:
             name: authchat-secret

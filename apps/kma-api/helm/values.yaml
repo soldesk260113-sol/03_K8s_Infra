@@ -17,7 +17,7 @@ image:
   repository: 10.2.2.40:5000/library/kma-api
   pullPolicy: Always
   # 차트의 기본 appVersion 대신 사용할 이미지 태그를 덮어씁니다.
-  tag: "latest"
+  tag: "latest-1"
 
 imagePullSecrets:
   - name: harbor-secret

@@ -91,6 +91,7 @@ env:
   # ===== KMA =====
   KMA_AUTHKEY: "MmNnsQppQqGjZ7EKaaKhgQ"
   AIRKOREA_SERVICE_KEY: "93f2e3191276074224c438872e7cc3a95b6bcff3adbf538ceb8dba2938a233d5"
+  # AIRKOREA_SERVICE_KEY: "e7354f71712bb551aa973ec38c763141f796a7ae2129dee32e600105c11d4ad1"
 
   # ===== Database (PostgreSQL) =====
   DB_HOST: "10.2.2.254"

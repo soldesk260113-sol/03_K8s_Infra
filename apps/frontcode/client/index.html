@@ -779,13 +779,13 @@
     // ✅ 운영 권장: 브라우저는 SAME-ORIGIN 프록시만 호출 (CORS/혼합콘텐츠 방지)
     // - Ingress에서 /api/ai → auth-chat-api(프록시) 로 라우팅되도록 구성
     // - auth-chat-api가 내부에서 Ollama(/api/chat)로 프록시
-    const AI_PROXY_ENDPOINT = "/api/ai/api/chat";
+    const AI_PROXY_ENDPOINT = "/api/ai";
 
     const WIDGETS = {
-      weatherUrl: "/api/weather/weather/ultra",
+      weatherUrl: "/api/weather/ultra",
       dustPm10Url: "/api/dust/seoul/pm10",
       dustPm25Url: "/api/dust/seoul/pm25",
-      forecastUrl: "/api/weather/weather/short",
+      forecastUrl: "/api/weather/short",
       fxUrl: "https://api.frankfurter.dev/v1/latest",
     };
 
@@ -993,14 +993,14 @@
 
       // ✅ 초단기실황(온도/습도/강수량 RN1) - 운영에서 확인된 정상 경로 우선
       const ultraCandidates = [
-        `${API_BASE}/api/weather/weather/ultra?nx=${nx}&ny=${ny}`, // ✅ OK (curl 확인)
-        `${API_BASE}/api/weather/ultra?nx=${nx}&ny=${ny}`,         // (예전 라우팅 대비)
+        `${API_BASE}/api/weather/ultra?nx=${nx}&ny=${ny}`,
+        `${API_BASE}/api/weather/weather/ultra?nx=${nx}&ny=${ny}`,
       ];
 
       // ✅ 단기예보(강수확률 POP) - 환경별 경로 차이 대비
       const shortCandidates = [
-        `${API_BASE}/api/weather/weather/short?nx=${nx}&ny=${ny}`, // ✅ FastAPI 실제 라우터
-        `${API_BASE}/api/weather/short?nx=${nx}&ny=${ny}`,         // (Ingress rewrite 설정에 따라)
+        `${API_BASE}/api/weather/short?nx=${nx}&ny=${ny}`,
+        `${API_BASE}/api/weather/weather/short?nx=${nx}&ny=${ny}`,
       ];
 
       try {

@@ -64,7 +64,7 @@ affinity:
 
 env:
   - name: OLLAMA_HOST_PRIMARY
-    value: "http://139.150.91.194:11434"
+    value: "http://139.150.91.194:11435"
   - name: OLLAMA_HOST_SECONDARY
     value: "http://10.2.2.40:11434"
   - name: DEFAULT_MODEL

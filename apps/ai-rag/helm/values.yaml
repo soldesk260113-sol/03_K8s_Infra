@@ -68,7 +68,7 @@ env:
   - name: OLLAMA_HOST_SECONDARY
     value: "http://10.2.2.40:11434"
   - name: DEFAULT_MODEL
-    value: "llama3.1:3b"
+    value: "llama3.2:3b"
   - name: KMA_API_URL
     value: "http://kma-api:8080/weather/short"
   - name: ENERGY_API_URL
